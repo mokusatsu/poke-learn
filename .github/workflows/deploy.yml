@@ -35,3 +35,5 @@ jobs:
           project: "poke-learn" # Deno Deployのプロジェクト名
           entrypoint: "jsr:@std/http/file-server" # Deno標準の静的ファイルサーバーをエントリーポイントにする
           root: "dist" # サーブする静的アセットのルート
+        env:
+          DENO_DEPLOY_TOKEN: ${{ secrets.DENO_DEPLOY_TOKEN }}
