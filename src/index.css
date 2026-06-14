@@ -1,0 +1,338 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap');
+
+:root {
+  /* 共通カラーシステム */
+  --bg-primary: #0a0b10;
+  --bg-secondary: #121420;
+  --bg-glass: rgba(18, 20, 32, 0.65);
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-glass-active: rgba(255, 255, 255, 0.2);
+  --text-primary: #f3f4f6;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --accent-cyan: #06b6d4;
+  --accent-cyan-glow: rgba(6, 182, 212, 0.4);
+  --accent-violet: #8b5cf6;
+  
+  --success: #10b981;
+  --success-glow: rgba(16, 185, 129, 0.4);
+  --error: #ef4444;
+  --error-glow: rgba(239, 68, 68, 0.4);
+  --warning: #f59e0b;
+
+  /* ポケモンタイプカラー定義 */
+  --color-normal: #A8A77A;
+  --color-fire: #EE8130;
+  --color-water: #6390F0;
+  --color-electric: #F7D02C;
+  --color-grass: #7AC74C;
+  --color-ice: #96D9D6;
+  --color-fighting: #C22E28;
+  --color-poison: #A33EA1;
+  --color-ground: #E2BF65;
+  --color-flying: #A98FF3;
+  --color-psychic: #F95587;
+  --color-bug: #A6B91A;
+  --color-rock: #B6A136;
+  --color-ghost: #735797;
+  --color-dragon: #6F35FC;
+  --color-dark: #705746;
+  --color-steel: #B7B7CE;
+  --color-fairy: #D685AD;
+
+  --glow-normal: rgba(168, 167, 122, 0.4);
+  --glow-fire: rgba(238, 129, 48, 0.45);
+  --glow-water: rgba(99, 144, 240, 0.45);
+  --glow-electric: rgba(247, 208, 44, 0.45);
+  --glow-grass: rgba(122, 199, 76, 0.45);
+  --glow-ice: rgba(150, 217, 214, 0.45);
+  --glow-fighting: rgba(194, 46, 40, 0.45);
+  --glow-poison: rgba(163, 62, 161, 0.45);
+  --glow-ground: rgba(226, 191, 101, 0.45);
+  --glow-flying: rgba(169, 143, 243, 0.45);
+  --glow-psychic: rgba(249, 85, 135, 0.45);
+  --glow-bug: rgba(166, 185, 26, 0.45);
+  --glow-rock: rgba(182, 161, 54, 0.45);
+  --glow-ghost: rgba(115, 87, 151, 0.45);
+  --glow-dragon: rgba(111, 53, 252, 0.45);
+  --glow-dark: rgba(112, 87, 70, 0.45);
+  --glow-steel: rgba(183, 183, 206, 0.45);
+  --glow-fairy: rgba(214, 133, 173, 0.45);
+
+  font-family: 'Outfit', 'Noto Sans JP', system-ui, -apple-system, sans-serif;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+/* カスタムスクロールバー */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+html, body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;
+}
+
+body {
+  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.08) 0%, transparent 40%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+/* ガラスモーフィズム・基本UIカード */
+.glass-panel {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  border-color: rgba(255, 255, 255, 0.13);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* プレミアムグローカード */
+.glow-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  opacity: 0.5;
+  transition: all 0.5s;
+}
+
+.glow-card:hover::before {
+  opacity: 1;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), var(--accent-violet), transparent);
+}
+
+/* モード切替タブ */
+.tab-container {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+}
+
+.tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.tab-btn.active {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-glass-active);
+}
+
+/* フォーム・スイッチ関連 */
+.toggle-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-bg {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-glass);
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.toggle-circle {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+input:checked + .toggle-bg {
+  background: var(--accent-cyan-glow);
+  border-color: var(--accent-cyan);
+}
+
+input:checked + .toggle-bg .toggle-circle {
+  left: 26px;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+/* ボタン */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.5);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass);
+  color: var(--text-primary);
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--border-glass-active);
+}
+
+/* アニメーション */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0.97); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+.animate-pop-in {
+  animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* サンキービジュアライズ関連 */
+.link-path {
+  fill: none;
+  stroke-opacity: 0.15;
+  transition: all 0.3s ease;
+}
+
+.link-path.highlighted {
+  stroke-opacity: 0.85;
+  filter: drop-shadow(0px 0px 4px currentColor);
+}
+
+.link-path.dimmed {
+  stroke-opacity: 0.02;
+}
+
+.flow-anim {
+  stroke-dasharray: 8 8;
+  animation: dash 20s linear infinite;
+}
+
+.flow-anim-reverse {
+  stroke-dasharray: 8 8;
+  animation: dash-reverse 20s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -1000;
+  }
+}
+
+@keyframes dash-reverse {
+  to {
+    stroke-dashoffset: 1000;
+  }
+}
