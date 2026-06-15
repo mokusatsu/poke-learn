@@ -29,6 +29,7 @@
 - **言語設定**: 思考プロセス、コードコメント、ドキュメントの記述はすべて**日本語**で行うこと。
 - **パフォーマンス優先のUI**: ホバー時などの高頻度なUI更新には React の State を使わず、CSS の `transform`, `opacity`, `will-change` や擬似要素を活用した GPU アクセラレーションを優先すること。
 - **モダンなデザイン**: グラスモーフィズムや適切な余白、配色などを意識し、洗練されたモダンな UI を維持すること。
+- **仕様書の追従更新**: 新機能の実装や既存の仕様変更を行った場合は、必ず `docs/application-specification.md` にその変更内容を追記・修正し、仕様書と実装の乖離を防ぐこと。
 
 ### [Never] (禁止事項)
 - コマンド実行時に `npm run`, `yarn`, `pnpm` を直接使用しないこと。必ず `deno task` または `deno run` を使用する。
@@ -42,6 +43,7 @@
 
 コードの実装例や詳細な仕様については、以下のドキュメントを参照してください。
 
+- **アプリケーション仕様書**: [`docs/application-specification.md`](./docs/application-specification.md)
 - **アーキテクチャ概要**: [`docs/architecture/overview.md`](./docs/architecture/overview.md)
 - **状態管理の指針**: [`docs/state-management.md`](./docs/state-management.md)
 - **ドメイン知識・仕様**: [`docs/domain-logic.md`](./docs/domain-logic.md)

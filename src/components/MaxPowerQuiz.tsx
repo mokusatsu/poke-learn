@@ -63,7 +63,7 @@ export const MaxPowerQuiz: React.FC = () => {
   const x1 = BUTTON_WIDTH;
   const BADGE_WIDTH = isMobile ? 44 : 80;
   const GAP = isMobile ? 4 : 12;
-  const POKEMON_CARD_WIDTH = isMobile ? 96 : (isShortScreen ? 130 : 160);
+  const POKEMON_CARD_WIDTH = isMobile ? 112 : (isShortScreen ? 130 : 160);
   const x2 = CONTAINER_WIDTH - POKEMON_CARD_WIDTH - GAP - BADGE_WIDTH / 2;
   const midX = (x1 + x2) / 2;
 
@@ -766,14 +766,24 @@ export const MaxPowerQuiz: React.FC = () => {
                 })}
               </div>
 
-              {/* ポケモンカード本体 */}
-              <div style={{ flexShrink: 0 }}>
-                <PokemonCard
-                  pokemon={currentQuestion.opp}
-                  size={isMobile ? "sm" : "md"}
-                  showSprite={true}
-                  badgeSize="sm"
-                />
+              {/* ポケモンカード本体＆解答後の「次へ」ボタン */}
+              <div style={{ flexShrink: 0, display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                <PokemonCard pokemon={currentQuestion.opp} size={isMobile ? "sm" : (isShortScreen ? "md" : "md")} showSprite={true} badgeSize="sm" />
+                {isAnsMode && (
+                  <button
+                    onClick={handleNext}
+                    className="btn-primary animate-pop-in"
+                    style={{
+                      padding: isMobile ? "6px 12px" : "8px 20px",
+                      fontSize: isMobile ? "0.75rem" : "0.85rem",
+                      width: "100%",
+                      boxShadow: "0 0 10px rgba(6, 182, 212, 0.4)",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    {questionIndex < 9 ? "次へ ➡" : "結果へ ➡"}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -844,11 +854,7 @@ export const MaxPowerQuiz: React.FC = () => {
               })}
             </div>
 
-            <div style={{ display: "flex", justifyContent: "center", marginTop: "4px" }}>
-              <button onClick={handleNext} className="btn-primary" style={{ padding: "8px 24px", fontSize: "0.85rem", width: "160px" }}>
-                {questionIndex < 9 ? "次の問題へ" : "結果を見る ➡"}
-              </button>
-            </div>
+            {/* 下部のボタンは上部に移動したため削除 */}
           </div>
         )}
       </div>
@@ -890,12 +896,35 @@ export const MaxPowerQuiz: React.FC = () => {
         <div style={{ width: "100%", maxWidth: "640px", display: "flex", flexDirection: "column", gap: "8px", maxHeight: "250px", overflowY: "auto", padding: "6px" }}>
           <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-secondary)" }}>📋 10問の解答履歴内訳:</span>
           {results.map((r, idx) => (
-            <div key={`res-row-${idx}`} className="glass-panel" style={{ padding: "8px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.75rem", gap: "8px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
-                <span style={{ fontWeight: 800, color: "var(--text-muted)" }}>Q{idx + 1}</span>
+            <div
+              key={`res-row-${idx}`}
+              className="glass-panel"
+              style={{
+                padding: "8px 12px",
+                display: "flex",
+                flexDirection: isMobile ? "column" : "row",
+                justifyContent: "space-between",
+                alignItems: isMobile ? "flex-start" : "center",
+                fontSize: "0.75rem",
+                gap: isMobile ? "4px" : "8px"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%" }}>
+                <span style={{ fontWeight: 800, color: "var(--text-muted)", minWidth: "20px" }}>Q{idx + 1}</span>
                 <span style={{ fontWeight: 700 }}>{r.opp.nameJa} ({r.opp.types.map(t => TYPE_DETAILS[t].ja).join("/")})</span>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "12px", flexShrink: 0 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: isMobile ? "space-between" : "flex-end",
+                  gap: isMobile ? "8px" : "12px",
+                  width: isMobile ? "100%" : "auto",
+                  paddingLeft: isMobile ? "28px" : "0",
+                  color: "var(--text-secondary)",
+                  boxSizing: "border-box"
+                }}
+              >
                 <span>手札: {r.hand.map(t => TYPE_DETAILS[t].ja[0]).join(", ")}</span>
                 <span>
                   選択:{" "}
@@ -905,7 +934,7 @@ export const MaxPowerQuiz: React.FC = () => {
                   }
                 </span>
                 <span>時間: {(r.timeMs / 1000).toFixed(2)}s</span>
-                <span>{r.isCorrect ? "🟢" : "❌"}</span>
+                <span style={{ fontSize: "0.85rem" }}>{r.isCorrect ? "🟢" : "❌"}</span>
               </div>
             </div>
           ))}

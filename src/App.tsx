@@ -4,8 +4,9 @@ import { SelectionQuiz } from "./components/SelectionQuiz";
 import { TeamVisualizer } from "./components/TeamVisualizer";
 import { ConsistencyQuiz } from "./components/ConsistencyQuiz";
 import { WeaknessAnalysis } from "./components/WeaknessAnalysis";
+import { Colophon } from "./components/Colophon";
 
-type ActiveTab = "type-quiz" | "selection-quiz" | "consistency-quiz" | "visualizer" | "weakness-analysis";
+type ActiveTab = "type-quiz" | "selection-quiz" | "consistency-quiz" | "visualizer" | "weakness-analysis" | "colophon";
 
 function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("type-quiz");
@@ -69,6 +70,7 @@ function App() {
               POKE-LEARN
             </span>
             <span
+              onClick={() => setActiveTab("colophon")}
               style={{
                 fontSize: "0.55rem",
                 fontWeight: 700,
@@ -78,10 +80,20 @@ function App() {
                 borderRadius: "20px",
                 boxShadow: "0 0 4px var(--accent-cyan-glow)",
                 letterSpacing: "0.05em",
-                textTransform: "uppercase"
+                textTransform: "uppercase",
+                cursor: "pointer",
+                transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(6, 182, 212, 0.15)";
+                e.currentTarget.style.boxShadow = "0 0 10px var(--accent-cyan-glow)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent";
+                e.currentTarget.style.boxShadow = "0 0 4px var(--accent-cyan-glow)";
               }}
             >
-              v2.0 Beta
+              2026-06-15
             </span>
           </div>
           {!isMobile && !isShortScreen && (
@@ -117,42 +129,46 @@ function App() {
       </header>
 
       {/* メインタブナビゲーション */}
-      <nav className="tab-container" style={{ padding: "2px", display: "flex", flexWrap: isMobile ? "nowrap" : "wrap", overflowX: isMobile ? "auto" : "visible", gap: isShortScreen ? "2px" : "4px", width: "100%", scrollbarWidth: "none" }}>
+      <nav className="tab-container" style={{ padding: "2px", display: "flex", flexWrap: isMobile ? "nowrap" : "wrap", overflowX: isMobile ? "auto" : "visible", gap: isShortScreen ? "2px" : "4px", width: "100%", scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}>
         <style>{`.tab-container::-webkit-scrollbar { display: none; }`}</style>
         <button
           onClick={() => setActiveTab("type-quiz")}
           className={`tab-btn ${activeTab === "type-quiz" ? "active" : ""}`}
-          style={{ padding: isShortScreen ? "4px 8px" : "6px 12px", fontSize: "0.8rem", flexShrink: 0 }}
+          style={{ padding: isMobile ? "4px 8px" : (isShortScreen ? "4px 8px" : "6px 12px"), fontSize: "0.8rem", flexShrink: 0 }}
         >
-          🎯 タイプ相性
+          <span className="mobile-only">🎯 相性</span>
+          <span className="desktop-only">🎯 タイプ相性</span>
         </button>
         <button
           onClick={() => setActiveTab("selection-quiz")}
           className={`tab-btn ${activeTab === "selection-quiz" ? "active" : ""}`}
-          style={{ padding: isShortScreen ? "4px 8px" : "6px 12px", fontSize: "0.8rem", flexShrink: 0 }}
+          style={{ padding: isMobile ? "4px 8px" : (isShortScreen ? "4px 8px" : "6px 12px"), fontSize: "0.8rem", flexShrink: 0 }}
         >
-          ⚔️ 6vs6 選出
+          <span className="mobile-only">⚔️ 選出</span>
+          <span className="desktop-only">⚔️ 6vs6 選出</span>
         </button>
         <button
           onClick={() => setActiveTab("consistency-quiz")}
           className={`tab-btn ${activeTab === "consistency-quiz" ? "active" : ""}`}
-          style={{ padding: isShortScreen ? "4px 8px" : "6px 12px", fontSize: "0.8rem", flexShrink: 0 }}
+          style={{ padding: isMobile ? "4px 8px" : (isShortScreen ? "4px 8px" : "6px 12px"), fontSize: "0.8rem", flexShrink: 0 }}
         >
-          🔥 一貫技
+          <span>🔥 一貫技</span>
         </button>
         <button
           onClick={() => setActiveTab("visualizer")}
           className={`tab-btn ${activeTab === "visualizer" ? "active" : ""}`}
-          style={{ padding: isShortScreen ? "4px 8px" : "6px 12px", fontSize: "0.8rem", flexShrink: 0 }}
+          style={{ padding: isMobile ? "4px 8px" : (isShortScreen ? "4px 8px" : "6px 12px"), fontSize: "0.8rem", flexShrink: 0 }}
         >
-          🌐 相性可視化
+          <span className="mobile-only">🌐 可視化</span>
+          <span className="desktop-only">🌐 相性可視化</span>
         </button>
         <button
           onClick={() => setActiveTab("weakness-analysis")}
           className={`tab-btn ${activeTab === "weakness-analysis" ? "active" : ""}`}
-          style={{ padding: isShortScreen ? "4px 8px" : "6px 12px", fontSize: "0.8rem", flexShrink: 0 }}
+          style={{ padding: isMobile ? "4px 8px" : (isShortScreen ? "4px 8px" : "6px 12px"), fontSize: "0.8rem", flexShrink: 0 }}
         >
-          📊 苦手分析＆特訓
+          <span className="mobile-only">📊 分析・特訓</span>
+          <span className="desktop-only">📊 苦手分析＆特訓</span>
         </button>
       </nav>
 
@@ -163,6 +179,7 @@ function App() {
         {activeTab === "consistency-quiz" && <ConsistencyQuiz />}
         {activeTab === "visualizer" && <TeamVisualizer />}
         {activeTab === "weakness-analysis" && <WeaknessAnalysis />}
+        {activeTab === "colophon" && <Colophon />}
       </main>
     </div>
   );

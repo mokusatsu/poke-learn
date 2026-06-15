@@ -767,7 +767,7 @@ export const WeaknessAnalysis: React.FC = () => {
           className={`tab-btn ${activeSubTab === "boss" ? "active" : ""}`}
           style={{ fontSize: "0.8rem", padding: "6px 16px" }}
         >
-          👾 シャドウボス
+          👾 シャドウ ボス
         </button>
       </div>
 
@@ -1287,7 +1287,7 @@ export const WeaknessAnalysis: React.FC = () => {
                   </div>
 
                   {/* 戦闘グラフィック */}
-                  <div className="glass-panel" style={{ height: "140px", display: "flex", alignItems: "center", justifyContent: "space-around", position: "relative", overflow: "hidden", background: "radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(0,0,0,0) 70%)" }}>
+                  <div className="glass-panel" style={{ minHeight: "140px", padding: "8px 0", display: "flex", alignItems: "center", justifyContent: "space-around", position: "relative", overflow: "hidden", background: "radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(0,0,0,0) 70%)" }}>
                     
                     {/* 左: プレイヤー（剣と盾のシンボル） */}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
@@ -1304,15 +1304,15 @@ export const WeaknessAnalysis: React.FC = () => {
                     {/* 右: ボスシルエット */}
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
                       <div style={{
-                        width: "80px",
-                        height: "80px",
+                        width: "64px",
+                        height: "64px",
                         filter: "brightness(0) drop-shadow(0 0 8px rgba(139,92,246,0.8)) saturate(0)",
                         animation: "pulse 1.5s infinite"
                       }}>
                         <img src={bossPokemon.sprite} alt="Shadow Boss" style={{ maxWidth: "100%", maxHeight: "100%" }} />
                       </div>
-                      <div style={{ display: "flex", gap: "2px" }}>
-                        {bossTypes.map(t => <span key={`bt-${t}`} style={{ fontSize: "0.5rem", padding: "1px 4px", backgroundColor: TYPE_DETAILS[t].color, borderRadius: "2px", fontWeight: "bold" }}>{TYPE_DETAILS[t].ja.substring(0,1)}</span>)}
+                      <div style={{ display: "flex", gap: "4px", flexWrap: "wrap", justifyContent: "center", maxWidth: "90px" }}>
+                        {bossTypes.map(t => <TypeBadge key={`bt-${t}`} type={t} size="sm" />)}
                       </div>
                     </div>
                   </div>
@@ -1324,7 +1324,7 @@ export const WeaknessAnalysis: React.FC = () => {
                       // 攻撃フェーズ
                       <>
                         <div style={{ fontSize: "0.8rem", fontWeight: 700, textAlign: "center", color: "var(--accent-cyan)" }}>
-                          👇 最も効果バツグン（最大打点）となる攻撃タイプを選択してください！
+                          👇 最も効果が高い（最大打点）となる攻撃タイプを選択
                         </div>
                         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr 1fr" : "1fr 1fr 1fr 1fr", gap: "8px" }}>
                           {offenseHand.map(atkType => (

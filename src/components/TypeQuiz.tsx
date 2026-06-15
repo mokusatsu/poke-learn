@@ -39,6 +39,7 @@ const getCorrectSimpleChoice = (mult: number): SimpleChoice => {
 export const TypeQuiz: React.FC = () => {
   const [category, setCategory] = useState<QuizCategory>("simple-offense");
   const [isFocusedMode, setIsFocusedMode] = useState<boolean>(false);
+  const [showProgressPopover, setShowProgressPopover] = useState<boolean>(false);
   
   // 段階的タイプ学習用のステート (3〜18, localStorageで永続化)
   const [unlockedTypeCount, setUnlockedTypeCount] = useState<number>(() => {
@@ -374,13 +375,41 @@ export const TypeQuiz: React.FC = () => {
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "8px", maxWidth: "800px", margin: "0 auto", width: "100%" }}>
       
       {/* サブナビゲーションとトグル */}
-      <div className="glass-panel" style={{ padding: "6px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "8px" }}>
-        {/* 出題形式セレクタ */}
-        <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
+      <div className="glass-panel" style={{ padding: "6px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
+        {/* 出題形式セレクタ (モバイル用) */}
+        <div className="mobile-only" style={{ flex: 1 }}>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as QuizCategory)}
+            style={{
+              width: "100%",
+              backgroundColor: "rgba(255, 255, 255, 0.08)",
+              border: "1px solid var(--border-glass-active)",
+              color: "var(--text-primary)",
+              padding: "4px 8px",
+              borderRadius: "6px",
+              fontSize: "0.8rem",
+              fontWeight: "bold",
+              outline: "none",
+              cursor: "pointer"
+            }}
+          >
+            <option value="simple-offense">🎯 攻撃側 (シンプル)</option>
+            <option value="simple-defense">🛡️ 防御側 (シンプル)</option>
+            <option value="single-offense">🔥 攻撃側 (単)</option>
+            <option value="single-defense">💎 防御側 (単)</option>
+            <option value="composite-offense">⚡ 攻撃側 (複合)</option>
+            <option value="composite-defense">🌪️ 防御側 (複合)</option>
+            <option value="max-power">🏆 最大打点技選択 (10問TA)</option>
+          </select>
+        </div>
+
+        {/* 出題形式セレクタ (PC用) */}
+        <div className="desktop-only" style={{ gap: "4px", flexWrap: "wrap" }}>
           {(
             [
-              { id: "simple-offense", name: "攻撃側 (シンプル)" },
-              { id: "simple-defense", name: "防御側 (シンプル)" },
+              { id: "simple-offense", name: "攻撃側 (simple)" },
+              { id: "simple-defense", name: "防御側 (simple)" },
               { id: "single-offense", name: "攻撃側 (単)" },
               { id: "single-defense", name: "防御側 (単)" },
               { id: "composite-offense", name: "攻撃側 (複合)" },
@@ -406,7 +435,7 @@ export const TypeQuiz: React.FC = () => {
 
         {/* 苦手克服トグル */}
         {category !== "max-power" && (
-          <label className="toggle-switch">
+          <label className="toggle-switch" style={{ flexShrink: 0 }}>
             <input
               type="checkbox"
               checked={isFocusedMode}
@@ -423,59 +452,158 @@ export const TypeQuiz: React.FC = () => {
         )}
       </div>
 
-      {/* 段階的タイプ学習コントロールパネル (1行の超コンパクト化) */}
+      {/* 段階的タイプ学習コントロールパネル */}
       {category !== "max-power" && (
-        <div className="glass-panel" style={{ padding: "6px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.8rem", flexWrap: "wrap", gap: "8px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span style={{ fontWeight: 800, color: "var(--text-primary)" }}>段階的学習:</span>
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <button
-                onClick={() => handleManualTypeCountChange(unlockedTypeCount - 1)}
-                disabled={unlockedTypeCount <= 3}
-                className="tab-btn"
-                style={{ padding: "1px 5px", fontSize: "0.75rem", minWidth: "16px" }}
-              >
-                -
-              </button>
-              <strong style={{ color: "var(--accent-cyan)", minWidth: "14px", textAlign: "center" }}>{unlockedTypeCount}</strong>
-              <button
-                onClick={() => handleManualTypeCountChange(unlockedTypeCount + 1)}
-                disabled={unlockedTypeCount >= 18}
-                className="tab-btn"
-                style={{ padding: "1px 5px", fontSize: "0.75rem", minWidth: "16px" }}
-              >
-                +
-              </button>
-            </div>
-            <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>/18</span>
+        <>
+          {/* モバイル用表示 (バッジ＆設定ポップオーバー) */}
+          <div className="mobile-only" style={{ flexDirection: "column", width: "100%" }}>
+            <button
+              onClick={() => setShowProgressPopover(!showProgressPopover)}
+              className="tab-btn glow-card"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "6px 12px",
+                fontSize: "0.8rem",
+                width: "100%",
+                backgroundColor: "rgba(255, 255, 255, 0.04)",
+                borderColor: showProgressPopover ? "var(--accent-cyan)" : "var(--border-glass-active)"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                <span>📚 段階的学習:</span>
+                <strong style={{ color: "var(--accent-cyan)" }}>Lv.{unlockedTypeCount}</strong>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>📊 網羅率: <strong style={{ color: coveragePercent === 100 ? "var(--success)" : "var(--accent-cyan)" }}>{coveragePercent}%</strong></span>
+                <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>{showProgressPopover ? "▲ 閉じる" : "▼ 設定"}</span>
+              </div>
+            </button>
+
+            {showProgressPopover && (
+              <div className="glass-panel animate-pop-in" style={{
+                padding: "10px 14px",
+                marginTop: "4px",
+                display: "flex",
+                flexDirection: "column",
+                gap: "8px",
+                fontSize: "0.8rem",
+                backgroundColor: "rgba(10, 15, 30, 0.95)",
+                border: "1px solid var(--border-glass-active)",
+                boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+                width: "100%",
+                boxSizing: "border-box"
+              }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontWeight: 800 }}>解放タイプ数（レベル）:</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <button
+                      onClick={() => handleManualTypeCountChange(unlockedTypeCount - 1)}
+                      disabled={unlockedTypeCount <= 3}
+                      className="tab-btn"
+                      style={{ padding: "2px 8px", fontSize: "0.75rem" }}
+                    >
+                      -
+                    </button>
+                    <strong style={{ color: "var(--accent-cyan)", minWidth: "16px", textAlign: "center" }}>{unlockedTypeCount}</strong>
+                    <button
+                      onClick={() => handleManualTypeCountChange(unlockedTypeCount + 1)}
+                      disabled={unlockedTypeCount >= 18}
+                      className="tab-btn"
+                      style={{ padding: "2px 8px", fontSize: "0.75rem" }}
+                    >
+                      +
+                    </button>
+                    <span style={{ color: "var(--text-muted)", fontSize: "0.7rem" }}>/18</span>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>カバー済相性ペア数:</span>
+                  <strong>{activeCoveredCount} / {totalPossiblePairs}</strong>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>次に解放されるタイプ:</span>
+                  {unlockedTypeCount < 18 ? (
+                    <strong style={{ color: "var(--accent-violet)" }}>
+                      {TYPE_DETAILS[PROGRESSIVE_TYPE_ORDER[unlockedTypeCount]]?.ja}
+                    </strong>
+                  ) : (
+                    <span style={{ color: "var(--success)", fontWeight: 700 }}>🎉 全解放済み！</span>
+                  )}
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "4px" }}>
+                  <button 
+                    onClick={() => {
+                      handleResetProgress();
+                      setShowProgressPopover(false);
+                    }} 
+                    className="tab-btn" 
+                    style={{ fontSize: "0.7rem", padding: "2px 8px", borderColor: "rgba(239, 68, 68, 0.4)", color: "rgba(239, 68, 68, 0.9)" }}
+                  >
+                    進捗を初期化する
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-            <span>📊 網羅率:</span>
-            <span style={{ fontWeight: 700, color: coveragePercent === 100 ? "var(--success)" : "var(--accent-cyan)" }}>
-              {coveragePercent}% ({activeCoveredCount}/{totalPossiblePairs})
-            </span>
-          </div>
-
-          {unlockedTypeCount < 18 ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <span style={{ color: "var(--text-secondary)" }}>次:</span>
-              <strong style={{ color: "var(--accent-violet)" }}>
-                {TYPE_DETAILS[PROGRESSIVE_TYPE_ORDER[unlockedTypeCount]]?.ja}
-              </strong>
+          {/* PC用表示 (1行フラットパネル) */}
+          <div className="desktop-only" style={{ padding: "6px 16px", justifyContent: "space-between", alignItems: "center", fontSize: "0.8rem", gap: "8px", width: "100%", borderRadius: "8px", backgroundColor: "rgba(255, 255, 255, 0.02)", border: "1px solid var(--border-glass)", boxSizing: "border-box" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontWeight: 800, color: "var(--text-primary)" }}>段階的学習:</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <button
+                  onClick={() => handleManualTypeCountChange(unlockedTypeCount - 1)}
+                  disabled={unlockedTypeCount <= 3}
+                  className="tab-btn"
+                  style={{ padding: "1px 5px", fontSize: "0.75rem", minWidth: "16px" }}
+                >
+                  -
+                </button>
+                <strong style={{ color: "var(--accent-cyan)", minWidth: "14px", textAlign: "center" }}>{unlockedTypeCount}</strong>
+                <button
+                  onClick={() => handleManualTypeCountChange(unlockedTypeCount + 1)}
+                  disabled={unlockedTypeCount >= 18}
+                  className="tab-btn"
+                  style={{ padding: "1px 5px", fontSize: "0.75rem", minWidth: "16px" }}
+                >
+                  +
+                </button>
+              </div>
+              <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>/18</span>
             </div>
-          ) : (
-            <span style={{ color: "var(--success)", fontWeight: 700 }}>🎉 コンプリート！</span>
-          )}
 
-          <button 
-            onClick={handleResetProgress} 
-            className="tab-btn" 
-            style={{ fontSize: "0.7rem", padding: "1px 6px", borderColor: "rgba(239, 68, 68, 0.3)", color: "rgba(239, 68, 68, 0.7)" }}
-          >
-            リセット
-          </button>
-        </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <span>📊 網羅率:</span>
+              <span style={{ fontWeight: 700, color: coveragePercent === 100 ? "var(--success)" : "var(--accent-cyan)" }}>
+                {coveragePercent}% ({activeCoveredCount}/{totalPossiblePairs})
+              </span>
+            </div>
+
+            {unlockedTypeCount < 18 ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <span style={{ color: "var(--text-secondary)" }}>次:</span>
+                <strong style={{ color: "var(--accent-violet)" }}>
+                  {TYPE_DETAILS[PROGRESSIVE_TYPE_ORDER[unlockedTypeCount]]?.ja}
+                </strong>
+              </div>
+            ) : (
+              <span style={{ color: "var(--success)", fontWeight: 700 }}>🎉 コンプリート！</span>
+            )}
+
+            <button 
+              onClick={handleResetProgress} 
+              className="tab-btn" 
+              style={{ fontSize: "0.7rem", padding: "1px 6px", borderColor: "rgba(239, 68, 68, 0.3)", color: "rgba(239, 68, 68, 0.7)" }}
+            >
+              リセット
+            </button>
+          </div>
+        </>
       )}
 
       {/* 新規解放のトースト通知 */}
@@ -517,7 +645,7 @@ export const TypeQuiz: React.FC = () => {
           <span style={{ color: "var(--text-muted)", fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
             {category === "simple-offense" && "シンプル相性 - 攻撃側倍率判定"}
             {category === "simple-defense" && "シンプル相性 - 防御側倍率判定"}
-            {category === "single-offense" && "攻撃相性 - 抜群選択"}
+            {category === "single-offense" && "攻撃相性 - ばつぐん選択"}
             {category === "single-defense" && "防御相性 - 弱点選択"}
             {category === "composite-offense" && "攻撃相性 - 4倍・2倍の攻撃判定"}
             {category === "composite-defense" && "防御相性 - 4倍・2倍の弱点判定"}
@@ -526,67 +654,67 @@ export const TypeQuiz: React.FC = () => {
           <h2 style={{ fontSize: "1.15rem", fontWeight: 800, marginTop: "2px" }}>
             {category === "simple-offense" && (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
-                <span>タイプ一致</span>
+                {/* <span>タイプ一致</span> */}
                 {simpleAtkType && <TypeBadge type={simpleAtkType} size="md" />}
-                <span>の技で、防御側</span>
+                <span>技で</span>
                 {simpleDefType && <TypeBadge type={simpleDefType} size="md" />}
                 <span>を攻撃したときの効果は？</span>
               </div>
             )}
             {category === "simple-defense" && (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
-                <span>防御側が</span>
+                {/* <span>防御側が</span> */}
                 {simpleDefType && <TypeBadge type={simpleDefType} size="md" />}
-                <span>タイプのとき、攻撃側</span>
+                <span>タイプが</span>
                 {simpleAtkType && <TypeBadge type={simpleAtkType} size="md" />}
-                <span>からの技を受ける効果は？</span>
+                <span>技を受けたときの効果は？</span>
               </div>
             )}
             {category === "single-offense" && (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
-                <span>タイプ一致</span>
+                {/* <span>タイプ一致</span>  */}
                 {questionType && <TypeBadge type={questionType} size="md" />}
-                <span>の技で攻撃したとき、<strong>効果は抜群</strong>になるのは？</span>
+                <span>技が<strong>ばつぐん</strong>になる相手は？</span>
               </div>
             )}
             {category === "single-defense" && (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
-                <span>防御側が</span>
+                {/* <span>防御側が</span> */}
                 {questionType && <TypeBadge type={questionType} size="md" />}
-                <span>タイプのとき、<strong>弱点（効果は抜群）</strong>となる攻撃タイプは？</span>
+                <span>タイプに<strong>ばつぐん</strong>な攻撃は？</span>
               </div>
             )}
             {category === "composite-offense" && (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
-                <span>防御側が</span>
+                {/* <span>防御側が</span> */}
                 {questionComposite && (
                   <>
                     <TypeBadge type={questionComposite[0]} size="md" />
-                    <span>・</span>
+                    {/* <span>・</span> */}
                     <TypeBadge type={questionComposite[1]} size="md" />
                   </>
                 )}
-                <span>のとき、4倍および2倍になる攻撃は？</span>
+                <span>にばつぐんの攻撃は？</span>
               </div>
             )}
             {category === "composite-defense" && (
               <div style={{ display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}>
-                <span>タイプが</span>
+                {/* <span>タイプが</span> */}
                 {questionComposite && (
                   <>
                     <TypeBadge type={questionComposite[0]} size="md" />
-                    <span>・</span>
+                    {/* <span>・</span> */}
                     <TypeBadge type={questionComposite[1]} size="md" />
                   </>
                 )}
-                <span>のポケモンの、4倍弱点と2倍弱点は？</span>
+                <span>ポケモンの弱点は？</span>
               </div>
             )}
           </h2>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.75rem" }}>
             {category.startsWith("simple-") 
-              ? "※正しい相性倍率を選択すると、その瞬間に回答が確定します。" 
-              : "※当てはまるタイプを全て選択し、決定ボタンを押してください。該当なしは未選択で決定。"}
+              ? "正しい相性倍率を選択で回答が確定" 
+              : "※当てはまるタイプを全て選択。該当なしは未選択で決定"}
           </p>
         </div>
 
@@ -599,9 +727,9 @@ export const TypeQuiz: React.FC = () => {
               {(
                 [
                   { id: "double", label: "ばつぐん", desc: "2倍", color: "var(--success)" },
-                  { id: "normal", label: "等倍", desc: "1倍", color: "var(--text-primary)" },
-                  { id: "half", label: "いまひとつ", desc: "0.5倍以下", color: "var(--accent-cyan)" },
-                  { id: "immune", label: "無効", desc: "0倍", color: "var(--error)" }
+                  { id: "normal", label: "こうかあり", desc: "1倍", color: "var(--text-primary)" },
+                  { id: "half", label: "いまひとつ", desc: "0.5倍", color: "var(--accent-cyan)" },
+                  { id: "immune", label: "こうかなし", desc: "0倍", color: "var(--error)" }
                 ] as const
               ).map(opt => {
                 const isSelected = selectedSimpleAns === opt.id;
@@ -739,7 +867,7 @@ export const TypeQuiz: React.FC = () => {
             {/* 4倍弱点/抜群エリア */}
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--accent-cyan)", display: "flex", alignItems: "center", gap: "6px" }}>
-                <span>🎯 【4倍】効果は抜群（4x）</span>
+                <span>🎯 ちょうばつぐん（4x）</span>
                 {isAnswered && <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>（正解: {correct4x.map(t => TYPE_DETAILS[t].ja).join(", ") || "なし"}）</span>}
               </span>
               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", padding: "6px 12px", background: "rgba(0,0,0,0.15)", borderRadius: "8px", border: "1px solid var(--border-glass)" }}>
@@ -801,7 +929,7 @@ export const TypeQuiz: React.FC = () => {
             {/* 2倍弱点/抜群エリア */}
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--accent-violet)", display: "flex", alignItems: "center", gap: "6px" }}>
-                <span>⚡ 【2倍】効果は抜群（2x）</span>
+                <span>⚡ ばつぐん（2x）</span>
                 {isAnswered && <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>（正解: {correct2x.map(t => TYPE_DETAILS[t].ja).join(", ") || "なし"}）</span>}
               </span>
               <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", padding: "6px 12px", background: "rgba(0,0,0,0.15)", borderRadius: "8px", border: "1px solid var(--border-glass)" }}>
@@ -893,8 +1021,8 @@ export const TypeQuiz: React.FC = () => {
                       const mult = getEffectiveness(simpleAtkType, [simpleDefType]);
                       const labelMap = {
                         double: "ばつぐん (2倍)",
-                        normal: "等倍 (1倍)",
-                        half: "いまひとつ (0.5倍以下)",
+                        normal: "こうかあり (1倍)",
+                        half: "いまひとつ (0.5倍)",
                         immune: "無効 (0倍)"
                       };
                       return `${mult}x (${labelMap[getCorrectSimpleChoice(mult)]})`;
@@ -927,14 +1055,15 @@ export const TypeQuiz: React.FC = () => {
         {/* コントロールボタン (Submit and Next in same slot) */}
         <div style={{ display: "flex", gap: "12px", width: "100%", justifyContent: "center" }}>
           {!isAnswered ? (
-            <button 
-              onClick={() => handleSubmit()} 
-              className="btn-primary" 
-              style={{ width: "200px", padding: "10px 20px", fontSize: "0.9rem" }}
-              disabled={category.startsWith("simple-") && !selectedSimpleAns}
-            >
-              回答を決定する
-            </button>
+            !category.startsWith("simple-") && (
+              <button 
+                onClick={() => handleSubmit()} 
+                className="btn-primary" 
+                style={{ width: "200px", padding: "10px 20px", fontSize: "0.9rem" }}
+              >
+                回答を決定する
+              </button>
+            )
           ) : (
             <button onClick={generateQuestion} className="btn-primary" style={{ width: "200px", padding: "10px 20px", fontSize: "0.9rem", background: "linear-gradient(135deg, var(--accent-violet), #c084fc)" }}>
               次の問題へ

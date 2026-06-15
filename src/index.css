@@ -336,3 +336,20 @@ input:checked + .toggle-bg .toggle-circle {
     stroke-dashoffset: 1000;
   }
 }
+
+/* モバイル・デスクトップの表示切り替えユーティリティ */
+.mobile-only {
+  display: none !important;
+}
+.desktop-only {
+  display: flex !important;
+}
+
+@media (max-width: 767px) {
+  .mobile-only {
+    display: flex !important;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+}

@@ -23,6 +23,34 @@ export const TeamVisualizer: React.FC = () => {
   const [hoveredUserIdx, setHoveredUserIdx] = useState<number | null>(null);
   const [hoveredOppIdx, setHoveredOppIdx] = useState<number | null>(null);
 
+  // カードタップ（トグル）ハンドラー
+  const handleCardClick = (side: "user" | "opp", index: number) => {
+    if (side === "user") {
+      if (hoveredUserIdx === index) {
+        setHoveredUserIdx(null);
+      } else {
+        setHoveredUserIdx(index);
+        setHoveredOppIdx(null); // 反対側はクリア
+      }
+    } else {
+      if (hoveredOppIdx === index) {
+        setHoveredOppIdx(null);
+      } else {
+        setHoveredOppIdx(index);
+        setHoveredUserIdx(null); // 反対側はクリア
+      }
+    }
+  };
+
+  // 外側タップで選択解除するハンドラー
+  const handleContainerClick = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest(".pokemon-card") && !target.closest(".btn-primary")) {
+      setHoveredUserIdx(null);
+      setHoveredOppIdx(null);
+    }
+  };
+
   // 新規チーム作成
   const loadTeams = async () => {
     setLoading(true);
@@ -30,6 +58,8 @@ export const TeamVisualizer: React.FC = () => {
       const draft = await generateRandomTeam(12);
       setUserTeam(draft.slice(0, 6));
       setOppTeam(draft.slice(6, 12));
+      setHoveredUserIdx(null);
+      setHoveredOppIdx(null);
     } catch (e) {
       console.error(e);
     } finally {
@@ -42,34 +72,44 @@ export const TeamVisualizer: React.FC = () => {
   }, []);
 
   // レイアウト設定
-  const CARD_HEIGHT = isMobile ? 42 : 70;
-  const CARD_GAP = isMobile ? 4 : 8;
-  const TOTAL_HEIGHT = 6 * CARD_HEIGHT + 5 * CARD_GAP;
-  const SVG_WIDTH = isMobile ? 120 : 280;
+  const CARD_HEIGHT = isMobile ? 54 : 70;
+  const CARD_WIDTH = isMobile ? 46 : 260;
+  const CARD_GAP = isMobile ? 8 : 8;
+  const TOTAL_HEIGHT = isMobile ? 140 : (6 * CARD_HEIGHT + 5 * CARD_GAP);
+  const SVG_WIDTH = isMobile ? 320 : 280;
 
   // ベジェ曲線のパスを生成
-  // M x1 y1 C (x1+dx) y1 (x2-dx) y2 x2 y2
   const calculatePath = (idx1: number, idx2: number): string => {
-    const y1 = idx1 * (CARD_HEIGHT + CARD_GAP) + CARD_HEIGHT / 2;
-    let y2 = idx2 * (CARD_HEIGHT + CARD_GAP) + CARD_HEIGHT / 2;
-    if (y1 === y2) {
-      y2 += 0.01;
+    if (isMobile) {
+      // 上から下へのベジェ曲線
+      const x1 = idx1 * (46 + 8) + 25; // 味方の中心X座標
+      const x2 = idx2 * (46 + 8) + 25; // 相手の中心X座標
+      const y1 = 0;
+      const y2 = TOTAL_HEIGHT;
+      const controlOffset = TOTAL_HEIGHT / 2;
+      return `M ${x1} ${y1} C ${x1} ${controlOffset}, ${x2} ${TOTAL_HEIGHT - controlOffset}, ${x2} ${y2}`;
+    } else {
+      // 左から右へのベジェ曲線
+      const y1 = idx1 * (CARD_HEIGHT + CARD_GAP) + CARD_HEIGHT / 2;
+      let y2 = idx2 * (CARD_HEIGHT + CARD_GAP) + CARD_HEIGHT / 2;
+      if (y1 === y2) {
+        y2 += 0.01;
+      }
+      const x1 = 0;
+      const x2 = SVG_WIDTH;
+      const controlOffset = SVG_WIDTH / 2;
+      return `M ${x1} ${y1} C ${controlOffset} ${y1}, ${SVG_WIDTH - controlOffset} ${y2}, ${x2} ${y2}`;
     }
-    const x1 = 0;
-    const x2 = SVG_WIDTH;
-    const controlOffset = SVG_WIDTH / 2;
-
-    return `M ${x1} ${y1} C ${controlOffset} ${y1}, ${SVG_WIDTH - controlOffset} ${y2}, ${x2} ${y2}`;
   };
 
   // 倍率に応じたカラー & テキストを取得
   const getMultiplierStyle = (mult: number) => {
-    if (mult === 4.0) return { color: "#F59E0B", glow: "rgba(245, 158, 11, 0.4)", label: "4x ばつぐん" };
-    if (mult === 2.0) return { color: "#10B981", glow: "rgba(16, 185, 129, 0.4)", label: "2x ばつぐん" };
-    if (mult === 0.5) return { color: "#3B82F6", glow: "rgba(59, 130, 246, 0.3)", label: "0.5x いまひとつ" };
-    if (mult === 0.25) return { color: "#6366F1", glow: "rgba(99, 102, 241, 0.3)", label: "0.25x いまひとつ" };
-    if (mult === 0.0) return { color: "#EF4444", glow: "rgba(239, 68, 68, 0.4)", label: "こうかなし" };
-    return { color: "#9CA3AF", glow: "transparent", label: "1x 等倍" };
+    if (mult === 4.0) return { color: "#F59E0B", glow: "rgba(245, 158, 11, 0.4)", label: "4x ばつぐん", shortLabel: "4x" };
+    if (mult === 2.0) return { color: "#10B981", glow: "rgba(16, 185, 129, 0.4)", label: "2x ばつぐん", shortLabel: "2x" };
+    if (mult === 0.5) return { color: "#3B82F6", glow: "rgba(59, 130, 246, 0.3)", label: "0.5x いまひとつ", shortLabel: "0.5x" };
+    if (mult === 0.25) return { color: "#6366F1", glow: "rgba(99, 102, 241, 0.3)", label: "0.25x いまひとつ", shortLabel: "0.25x" };
+    if (mult === 0.0) return { color: "#EF4444", glow: "rgba(239, 68, 68, 0.4)", label: "こうかなし", shortLabel: "0x" };
+    return { color: "#9CA3AF", glow: "transparent", label: "1x 等倍", shortLabel: "1x" };
   };
 
   // 倍率に応じた線のスタイル (太さと線種) を取得
@@ -83,7 +123,11 @@ export const TeamVisualizer: React.FC = () => {
   };
 
   return (
-    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%" }}>
+    <div 
+      className="animate-fade-in" 
+      onClick={handleContainerClick}
+      style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%" }}
+    >
       
       {/* 操作パネル */}
       <div className="glass-panel" style={{ padding: isMobile ? "4px 8px" : "6px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "nowrap", gap: "8px" }}>
@@ -116,7 +160,7 @@ export const TeamVisualizer: React.FC = () => {
         <div
           className="glass-panel glow-card"
           style={{
-            padding: "12px",
+            padding: isMobile ? "16px 8px" : "12px",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
@@ -125,63 +169,121 @@ export const TeamVisualizer: React.FC = () => {
             flex: 1
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", position: "relative", minWidth: isMobile ? "220px" : "860px" }}>
+          <div style={{ 
+            display: "flex", 
+            flexDirection: isMobile ? "column" : "row", 
+            alignItems: "center", 
+            position: "relative", 
+            minWidth: isMobile ? "320px" : "860px" 
+          }}>
             
-            {/* 左カラム: 味方チーム (6体) */}
-            <div style={{ display: "flex", flexDirection: "column", gap: `${CARD_GAP}px`, width: isMobile ? "48px" : "260px" }}>
-              <div style={{ fontSize: isMobile ? "0.6rem" : "0.85rem", fontWeight: 700, color: "var(--success)", textAlign: "center", marginBottom: "4px", borderBottom: "1px solid var(--border-glass)", paddingBottom: "4px", whiteSpace: "nowrap", overflow: "hidden" }}>
-                {isMobile ? "🟢味方" : "🟢 味方パーティ (攻撃側ホバー)"}
-              </div>
-              {userTeam.map((poke, index) => {
-                const isHovered = hoveredUserIdx === index;
-                const isAnyHovered = hoveredUserIdx !== null || hoveredOppIdx !== null;
-                const isDimmed = isAnyHovered && !isHovered && hoveredOppIdx === null;
-
-                return (
-                  <div
-                    key={`visual-user-${index}`}
-                    className="pokemon-card"
-                    onMouseEnter={() => setHoveredUserIdx(index)}
-                    onMouseLeave={() => setHoveredUserIdx(null)}
-                    style={{
-                      height: `${CARD_HEIGHT}px`,
-                      width: isMobile ? "48px" : "auto",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: isMobile ? "center" : "flex-start",
-                      gap: isMobile ? "0px" : "6px",
-                      padding: isMobile ? "2px" : "6px 10px",
-                      borderRadius: "8px",
-                      background: isHovered ? "rgba(255,255,255,0.06)" : "rgba(18,20,32,0.4)",
-                      border: `1px solid ${isHovered ? "var(--success)" : "var(--border-glass)"}`,
-                      transition: "all 0.2s ease",
-                      transform: isHovered ? (isMobile ? "translateX(3px)" : "translateX(6px)") : "translateX(0)",
-                      opacity: isDimmed ? 0.35 : 1,
-                      cursor: "pointer",
-                      boxShadow: isHovered ? "0 4px 15px rgba(16,185,129,0.15)" : "none",
-                    }}
-                  >
-                    <img src={poke.sprite} alt={poke.nameJa} style={{ width: isMobile ? "32px" : "40px", height: isMobile ? "32px" : "40px", objectFit: "contain" }} />
-                    {!isMobile && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", overflow: "hidden", flex: 1 }}>
-                        <span style={{ fontSize: "0.8rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{poke.nameJa}</span>
-                        <div style={{ display: "flex", gap: "4px" }}>
-                          {poke.types.map(t => <TypeBadge key={t} type={t} size="sm" />)}
-                        </div>
-                      </div>
-                    )}
+            {/* 上カラム (スマホ) / 左カラム (PC): 味方チーム (6体) */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: isMobile ? "320px" : "auto" }}>
+              {isMobile ? (
+                <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--success)", marginBottom: "4px" }}>
+                  🟢 味方パーティ (タップして選択)
+                </div>
+              ) : null}
+              
+              <div style={{ 
+                display: "flex", 
+                flexDirection: isMobile ? "row" : "column", 
+                gap: `${CARD_GAP}px`, 
+                width: isMobile ? "320px" : "260px",
+                justifyContent: isMobile ? "center" : "flex-start",
+                padding: isMobile ? "0 2px" : "0"
+              }}>
+                {!isMobile && (
+                  <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--success)", textAlign: "center", marginBottom: "4px", borderBottom: "1px solid var(--border-glass)", paddingBottom: "4px", whiteSpace: "nowrap", overflow: "hidden" }}>
+                    🟢 味方パーティ (攻撃側ホバー)
                   </div>
-                );
-              })}
+                )}
+                {userTeam.map((poke, index) => {
+                  const isHovered = hoveredUserIdx === index;
+                  const isAnyHovered = hoveredUserIdx !== null || hoveredOppIdx !== null;
+                  const isDimmed = isAnyHovered && !isHovered && hoveredOppIdx === null;
+
+                  return (
+                    <div
+                      key={`visual-user-${index}`}
+                      className="pokemon-card"
+                      onClick={() => handleCardClick("user", index)}
+                      onMouseEnter={() => { if (!isMobile) setHoveredUserIdx(index); }}
+                      onMouseLeave={() => { if (!isMobile) setHoveredUserIdx(null); }}
+                      style={{
+                        height: `${CARD_HEIGHT}px`,
+                        width: isMobile ? `${CARD_WIDTH}px` : "auto",
+                        display: "flex",
+                        flexDirection: isMobile ? "column" : "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: isMobile ? "0px" : "6px",
+                        padding: isMobile ? "2px" : "6px 10px",
+                        borderRadius: "8px",
+                        background: isHovered ? "rgba(255,255,255,0.06)" : "rgba(18,20,32,0.4)",
+                        border: `1px solid ${isHovered ? "var(--success)" : "var(--border-glass)"}`,
+                        transition: "all 0.2s ease",
+                        transform: isHovered 
+                          ? (isMobile ? "translateY(2px)" : "translateX(6px)") 
+                          : "translateY(0)",
+                        opacity: isDimmed ? 0.35 : 1,
+                        cursor: "pointer",
+                        boxShadow: isHovered ? "0 4px 15px rgba(16,185,129,0.15)" : "none",
+                      }}
+                    >
+                      <img 
+                        src={poke.sprite} 
+                        alt={poke.nameJa} 
+                        style={{ 
+                          width: isMobile ? "28px" : "40px", 
+                          height: isMobile ? "28px" : "40px", 
+                          objectFit: "contain" 
+                        }} 
+                      />
+                      {isMobile ? (
+                        <div style={{ display: "flex", gap: "2px", justifyContent: "center", marginTop: "2px" }}>
+                          {poke.types.map(t => (
+                            <span
+                              key={t}
+                              style={{
+                                display: "inline-block",
+                                width: "14px",
+                                height: "14px",
+                                borderRadius: "50%",
+                                backgroundColor: TYPE_DETAILS[t].color,
+                                color: TYPE_DETAILS[t].textColor,
+                                fontSize: "0.5rem",
+                                fontWeight: "bold",
+                                lineHeight: "14px",
+                                textAlign: "center",
+                                boxShadow: `0 0 4px ${TYPE_DETAILS[t].glowColor}`,
+                              }}
+                            >
+                              {TYPE_DETAILS[t].ja.substring(0, 1)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", overflow: "hidden", flex: 1 }}>
+                          <span style={{ fontSize: "0.8rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{poke.nameJa}</span>
+                          <div style={{ display: "flex", gap: "4px" }}>
+                            {poke.types.map(t => <TypeBadge key={t} type={t} size="sm" />)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
+            {/* SVG 接続線領域 */}
             <div style={{ width: `${SVG_WIDTH}px`, height: `${TOTAL_HEIGHT}px`, position: "relative" }}>
               <svg width={SVG_WIDTH} height={TOTAL_HEIGHT} style={{ pointerEvents: "none", overflow: "visible" }}>
                 
                 {/* 相性ライン描画 */}
                 {userTeam.map((userPoke, uIdx) => 
                   oppTeam.map((oppPoke, oIdx) => {
-                    // 相手ホバー時は相手が攻撃側、味方ホバー時または通常時は味方が攻撃側
                     const isOpponentAttacking = hoveredOppIdx !== null;
                     const attacker = isOpponentAttacking ? oppPoke : userPoke;
                     const defender = isOpponentAttacking ? userPoke : oppPoke;
@@ -197,16 +299,13 @@ export const TeamVisualizer: React.FC = () => {
                       }
                     });
 
-                    // ラインがハイライトされているかどうかのフラグ
                     const isLineHighlighted = 
-                      (hoveredUserIdx === uIdx) || // 味方ポケモンホバー時、その攻撃ルート全て
-                      (hoveredOppIdx === oIdx);   // 相手ポケモンホバー時、受ける攻撃ルート全て
+                      (hoveredUserIdx === uIdx) || 
+                      (hoveredOppIdx === oIdx);
                     
                     const isAnyHovered = hoveredUserIdx !== null || hoveredOppIdx !== null;
                     const isLineDimmed = isAnyHovered && !isLineHighlighted;
 
-                    // 1倍等倍の静的線は非ホバー時はごちゃごちゃするので非表示気味にし、
-                    // 抜群（2倍以上）または半減以下のみデフォルト表示。ホバー時はすべて表示。
                     const shouldRenderLine = isLineHighlighted || !isAnyHovered;
                     
                     if (!shouldRenderLine) return null;
@@ -216,7 +315,6 @@ export const TeamVisualizer: React.FC = () => {
                     
                     return (
                       <g key={`flow-${uIdx}-${oIdx}`}>
-                        {/* ベースの発光ライン (ホバー時のみ太く発光) */}
                         {isLineHighlighted && (
                           <path
                             d={calculatePath(uIdx, oIdx)}
@@ -228,7 +326,6 @@ export const TeamVisualizer: React.FC = () => {
                           />
                         )}
 
-                        {/* メインの相性ベジェ接続線 */}
                         <path
                           d={calculatePath(uIdx, oIdx)}
                           stroke={lineColor}
@@ -241,7 +338,6 @@ export const TeamVisualizer: React.FC = () => {
                           }}
                         />
 
-                        {/* ホバー時のフローアニメーションドット */}
                         {isLineHighlighted && (
                           <path
                             d={calculatePath(uIdx, oIdx)}
@@ -259,7 +355,7 @@ export const TeamVisualizer: React.FC = () => {
                 )}
               </svg>
 
-              {/* フロー上の中央倍率チップ描画 (ホバー中のみ動的オーバーレイで配置して重なりを回避) */}
+              {/* フロー上の中央倍率チップ描画 */}
               {userTeam.map((userPoke, uIdx) => 
                 oppTeam.map((oppPoke, oIdx) => {
                   const isLineHighlighted = 
@@ -272,7 +368,6 @@ export const TeamVisualizer: React.FC = () => {
                   const attacker = isOpponentAttacking ? oppPoke : userPoke;
                   const defender = isOpponentAttacking ? userPoke : oppPoke;
 
-                  // 最も効果的な倍率
                   let maxEffectiveness = 0;
                   attacker.types.forEach(atkType => {
                     const eff = getEffectiveness(atkType, defender.types);
@@ -280,14 +375,21 @@ export const TeamVisualizer: React.FC = () => {
                   });
 
                   // 座標の中央値を近似計算 (ベジェ曲線の中央点)
-                  const y1 = uIdx * (CARD_HEIGHT + CARD_GAP) + CARD_HEIGHT / 2;
-                  const y2 = oIdx * (CARD_HEIGHT + CARD_GAP) + CARD_HEIGHT / 2;
-                  const midY = (y1 + y2) / 2;
-                  const midX = SVG_WIDTH / 2;
+                  let midX = SVG_WIDTH / 2;
+                  let midY = 0;
+                  if (isMobile) {
+                    const x1 = uIdx * (46 + 8) + 25;
+                    const x2 = oIdx * (46 + 8) + 25;
+                    midX = (x1 + x2) / 2;
+                    midY = TOTAL_HEIGHT / 2;
+                  } else {
+                    const y1 = uIdx * (CARD_HEIGHT + CARD_GAP) + CARD_HEIGHT / 2;
+                    const y2 = oIdx * (CARD_HEIGHT + CARD_GAP) + CARD_HEIGHT / 2;
+                    midY = (y1 + y2) / 2;
+                  }
 
                   const styleDetail = getMultiplierStyle(maxEffectiveness);
 
-                  // 1倍等倍のチップはホバー時も非表示にしてクリーンにする（抜群・半減のみ明示）
                   if (maxEffectiveness === 1.0) return null;
 
                   return (
@@ -302,68 +404,120 @@ export const TeamVisualizer: React.FC = () => {
                         border: `1.5px solid ${styleDetail.color}`,
                         boxShadow: `0 0 10px ${styleDetail.glow}`,
                         color: styleDetail.color,
-                        padding: "3px 8px",
-                        borderRadius: "6px",
-                        fontSize: "0.7rem",
+                        padding: isMobile ? "2px 4px" : "3px 8px",
+                        borderRadius: isMobile ? "4px" : "6px",
+                        fontSize: isMobile ? "0.6rem" : "0.7rem",
                         fontWeight: 800,
                         zIndex: 10,
                         pointerEvents: "none",
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {styleDetail.label}
+                      {isMobile ? styleDetail.shortLabel : styleDetail.label}
                     </div>
                   );
                 })
               )}
             </div>
 
-            {/* 右カラム: 相手チーム (6体) */}
-            <div style={{ display: "flex", flexDirection: "column", gap: `${CARD_GAP}px`, width: isMobile ? "48px" : "260px" }}>
-              <div style={{ fontSize: isMobile ? "0.6rem" : "0.85rem", fontWeight: 700, color: "var(--error)", textAlign: "center", marginBottom: "4px", borderBottom: "1px solid var(--border-glass)", paddingBottom: "4px", whiteSpace: "nowrap", overflow: "hidden" }}>
-                {isMobile ? "🔴相手" : "🔴 相手パーティ (防御側ホバー)"}
-              </div>
-              {oppTeam.map((poke, index) => {
-                const isHovered = hoveredOppIdx === index;
-                const isAnyHovered = hoveredUserIdx !== null || hoveredOppIdx !== null;
-                const isDimmed = isAnyHovered && !isHovered && hoveredUserIdx === null;
-
-                return (
-                  <div
-                    key={`visual-opp-${index}`}
-                    className="pokemon-card"
-                    onMouseEnter={() => setHoveredOppIdx(index)}
-                    onMouseLeave={() => setHoveredOppIdx(null)}
-                    style={{
-                      height: `${CARD_HEIGHT}px`,
-                      width: isMobile ? "48px" : "auto",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: isMobile ? "center" : "flex-start",
-                      gap: isMobile ? "0px" : "6px",
-                      padding: isMobile ? "2px" : "6px 10px",
-                      borderRadius: "8px",
-                      background: isHovered ? "rgba(255,255,255,0.06)" : "rgba(18,20,32,0.4)",
-                      border: `1px solid ${isHovered ? "var(--error)" : "var(--border-glass)"}`,
-                      transition: "all 0.2s ease",
-                      transform: isHovered ? (isMobile ? "translateX(-3px)" : "translateX(-6px)") : "translateX(0)",
-                      opacity: isDimmed ? 0.35 : 1,
-                      cursor: "pointer",
-                      boxShadow: isHovered ? "0 4px 15px rgba(239,68,68,0.15)" : "none",
-                    }}
-                  >
-                    <img src={poke.sprite} alt={poke.nameJa} style={{ width: isMobile ? "32px" : "40px", height: isMobile ? "32px" : "40px", objectFit: "contain" }} />
-                    {!isMobile && (
-                      <div style={{ display: "flex", flexDirection: "column", gap: "2px", overflow: "hidden", flex: 1 }}>
-                        <span style={{ fontSize: "0.8rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{poke.nameJa}</span>
-                        <div style={{ display: "flex", gap: "4px" }}>
-                          {poke.types.map(t => <TypeBadge key={t} type={t} size="sm" />)}
-                        </div>
-                      </div>
-                    )}
+            {/* 下カラム (スマホ) / 右カラム (PC): 相手チーム (6体) */}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: isMobile ? "320px" : "auto" }}>
+              <div style={{ 
+                display: "flex", 
+                flexDirection: isMobile ? "row" : "column", 
+                gap: `${CARD_GAP}px`, 
+                width: isMobile ? "320px" : "260px",
+                justifyContent: isMobile ? "center" : "flex-start",
+                padding: isMobile ? "0 2px" : "0"
+              }}>
+                {!isMobile && (
+                  <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "var(--error)", textAlign: "center", marginBottom: "4px", borderBottom: "1px solid var(--border-glass)", paddingBottom: "4px", whiteSpace: "nowrap", overflow: "hidden" }}>
+                    🔴 相手パーティ (防御側ホバー)
                   </div>
-                );
-              })}
+                )}
+                {oppTeam.map((poke, index) => {
+                  const isHovered = hoveredOppIdx === index;
+                  const isAnyHovered = hoveredUserIdx !== null || hoveredOppIdx !== null;
+                  const isDimmed = isAnyHovered && !isHovered && hoveredUserIdx === null;
+
+                  return (
+                    <div
+                      key={`visual-opp-${index}`}
+                      className="pokemon-card"
+                      onClick={() => handleCardClick("opp", index)}
+                      onMouseEnter={() => { if (!isMobile) setHoveredOppIdx(index); }}
+                      onMouseLeave={() => { if (!isMobile) setHoveredOppIdx(null); }}
+                      style={{
+                        height: `${CARD_HEIGHT}px`,
+                        width: isMobile ? `${CARD_WIDTH}px` : "auto",
+                        display: "flex",
+                        flexDirection: isMobile ? "column" : "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: isMobile ? "0px" : "6px",
+                        padding: isMobile ? "2px" : "6px 10px",
+                        borderRadius: "8px",
+                        background: isHovered ? "rgba(255,255,255,0.06)" : "rgba(18,20,32,0.4)",
+                        border: `1px solid ${isHovered ? "var(--error)" : "var(--border-glass)"}`,
+                        transition: "all 0.2s ease",
+                        transform: isHovered 
+                          ? (isMobile ? "translateY(-2px)" : "translateX(-6px)") 
+                          : "translateY(0)",
+                        opacity: isDimmed ? 0.35 : 1,
+                        cursor: "pointer",
+                        boxShadow: isHovered ? "0 4px 15px rgba(239,68,68,0.15)" : "none",
+                      }}
+                    >
+                      <img 
+                        src={poke.sprite} 
+                        alt={poke.nameJa} 
+                        style={{ 
+                          width: isMobile ? "28px" : "40px", 
+                          height: isMobile ? "28px" : "40px", 
+                          objectFit: "contain" 
+                        }} 
+                      />
+                      {isMobile ? (
+                        <div style={{ display: "flex", gap: "2px", justifyContent: "center", marginTop: "2px" }}>
+                          {poke.types.map(t => (
+                            <span
+                              key={t}
+                              style={{
+                                display: "inline-block",
+                                width: "14px",
+                                height: "14px",
+                                borderRadius: "50%",
+                                backgroundColor: TYPE_DETAILS[t].color,
+                                color: TYPE_DETAILS[t].textColor,
+                                fontSize: "0.5rem",
+                                fontWeight: "bold",
+                                lineHeight: "14px",
+                                textAlign: "center",
+                                boxShadow: `0 0 4px ${TYPE_DETAILS[t].glowColor}`,
+                              }}
+                            >
+                              {TYPE_DETAILS[t].ja.substring(0, 1)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", flexDirection: "column", gap: "2px", overflow: "hidden", flex: 1 }}>
+                          <span style={{ fontSize: "0.8rem", fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{poke.nameJa}</span>
+                          <div style={{ display: "flex", gap: "4px" }}>
+                            {poke.types.map(t => <TypeBadge key={t} type={t} size="sm" />)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {isMobile ? (
+                <div style={{ fontSize: "0.65rem", fontWeight: 700, color: "var(--error)", marginTop: "8px" }}>
+                  🔴 相手パーティ (タップして選択)
+                </div>
+              ) : null}
             </div>
 
           </div>

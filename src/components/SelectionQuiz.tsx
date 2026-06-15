@@ -574,11 +574,35 @@ export const SelectionQuiz: React.FC = () => {
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "8px", width: "100%" }}>
       
       {/* サブナビゲーションと苦手克服トグル */}
-      <div className="glass-panel" style={{ padding: isMobile ? "4px 8px" : "6px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "nowrap", gap: "8px", overflow: "hidden" }}>
+      <div className="glass-panel" style={{ padding: "6px 12px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px" }}>
         
-        {/* 出題カテゴリ */}
-        <div style={{ display: "flex", gap: "4px", flexWrap: isMobile ? "nowrap" : "wrap", overflowX: isMobile ? "auto" : "visible", width: isMobile ? "calc(100% - 90px)" : "auto", paddingBottom: isMobile ? "2px" : "0", scrollbarWidth: "none" }}>
-          <style>{`div::-webkit-scrollbar { display: none; }`}</style>
+        {/* 出題カテゴリ (モバイル用) */}
+        <div className="mobile-only" style={{ flex: 1 }}>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as SelectionQuizCategory)}
+            style={{
+              width: "100%",
+              backgroundColor: "rgba(255, 255, 255, 0.08)",
+              border: "1px solid var(--border-glass-active)",
+              color: "var(--text-primary)",
+              padding: "4px 8px",
+              borderRadius: "6px",
+              fontSize: "0.8rem",
+              fontWeight: "bold",
+              outline: "none",
+              cursor: "pointer"
+            }}
+          >
+            <option value="offense-4x">⚔️ 攻撃選出 (4倍狙い)</option>
+            <option value="defense-4x">🛡️ 防御選出 (4倍回避)</option>
+            <option value="offense-all">🔥 一貫性攻撃 (全通し)</option>
+            <option value="defense-min-2x">💎 鉄壁防御選出</option>
+          </select>
+        </div>
+
+        {/* 出題カテゴリ (PC用) */}
+        <div className="desktop-only" style={{ gap: "4px", flexWrap: "wrap" }}>
           {(
             [
               { id: "offense-4x", name: "攻撃選出 (4倍狙い)" },
@@ -680,9 +704,9 @@ export const SelectionQuiz: React.FC = () => {
             {/* 敵チーム (6体) */}
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--error)", letterSpacing: "0.05em", paddingLeft: "4px" }}>
-                🔴 相手チーム (タイプのみ・一致技使用可能)
+                🔴 相手チーム
               </span>
-              <div style={{ display: "flex", gap: isMobile ? "6px" : "8px", overflowX: isMobile ? "auto" : "visible", width: "100%", paddingBottom: isMobile ? "4px" : "0", scrollbarWidth: "none", justifyContent: isMobile ? "flex-start" : "center" }}>
+              <div style={{ display: "flex", gap: isMobile ? "6px" : "8px", overflowX: isMobile ? "auto" : "visible", width: "100%", padding: isMobile ? "10px 6px" : "0", scrollbarWidth: "none", justifyContent: isMobile ? "flex-start" : "center", boxSizing: "border-box" }}>
                 <style>{`div::-webkit-scrollbar { display: none; }`}</style>
                 {oppTeam.map((poke, index) => (
                   <PokemonCard
@@ -711,7 +735,7 @@ export const SelectionQuiz: React.FC = () => {
                 <span>🟢 あなたの控えチーム (3体選択: 現在 {selectedIndices.length}/3 体)</span>
                 {isAnswered && <span style={{ color: "var(--text-muted)" }}>（正解の組み合わせ: {correctAnswersList.length}通り）</span>}
               </span>
-              <div style={{ display: "flex", gap: isMobile ? "6px" : "8px", overflowX: isMobile ? "auto" : "visible", width: "100%", paddingBottom: isMobile ? "4px" : "0", scrollbarWidth: "none", justifyContent: isMobile ? "flex-start" : "center" }}>
+              <div style={{ display: "flex", gap: isMobile ? "6px" : "8px", overflowX: isMobile ? "auto" : "visible", width: "100%", padding: isMobile ? "10px 6px" : "0", scrollbarWidth: "none", justifyContent: isMobile ? "flex-start" : "center", boxSizing: "border-box" }}>
                 {userTeam.map((poke, index) => {
                   const isSelected = selectedIndices.includes(index);
                   
