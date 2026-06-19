@@ -7,7 +7,7 @@ import { TypeBadge } from "./TypeBadge";
 import { PokemonCard } from "./PokemonCard";
 
 // localStorageキー一覧
-const TYPE_WEIGHTS_KEY = "poke-learn-type-weights";
+const TYPE_WEIGHTS_KEY = "poke-learn-quiz-weights";
 const MAX_POWER_WEIGHTS_KEY = "poke-learn-max-power-weights";
 const CONSISTENCY_WEIGHTS_KEY = "poke-learn-consistency-weights";
 const SELECTION_WEIGHTS_KEY = "poke-learn-selection-weights";
