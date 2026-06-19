@@ -452,3 +452,12 @@ export function computeInferredCoverage(
     isComplete: activeCoveredCount === totalPossiblePairs
   };
 }
+
+export const PROGRESSIVE_TYPE_ORDER: PokemonType[] = [
+  "fire", "water", "grass",      // 御三家
+  "normal", "flying", "bug",      // 初盤・基本タイプ
+  "electric", "ground", "rock",   // 元素・物理
+  "poison", "fighting", "psychic",// 中堅難易度
+  "ice", "ghost", "dragon",       // 後半・特殊
+  "dark", "steel", "fairy"        // 現代・複合向け
+];

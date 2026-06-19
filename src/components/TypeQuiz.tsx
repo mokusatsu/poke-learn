@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { TYPE_DETAILS, getEffectiveness, computeInferredCoverage, isAsymmetricPair } from "../utils/typeMatrix";
+import { TYPE_DETAILS, getEffectiveness, computeInferredCoverage, isAsymmetricPair, PROGRESSIVE_TYPE_ORDER } from "../utils/typeMatrix";
 import type { PokemonType } from "../utils/typeMatrix";
 import { TypeBadge } from "./TypeBadge";
 import { MaxPowerQuiz } from "./MaxPowerQuiz";
@@ -18,16 +18,6 @@ type SimpleChoice = "double" | "normal" | "half" | "immune";
 
 // 苦手克服データ用キー
 const WEIGHTS_KEY = "poke-learn-quiz-weights";
-
-// タイプのアンロック順序 (ほのお、みず、くさ の御三家からメジャー度順)
-const PROGRESSIVE_TYPE_ORDER: PokemonType[] = [
-  "fire", "water", "grass",      // 御三家
-  "normal", "flying", "bug",      // 初盤・基本タイプ
-  "electric", "ground", "rock",   // 元素・物理
-  "poison", "fighting", "psychic",// 中堅難易度
-  "ice", "ghost", "dragon",       // 後半・特殊
-  "dark", "steel", "fairy"        // 現代・複合向け
-];
 
 const getCorrectSimpleChoice = (mult: number): SimpleChoice => {
   if (mult >= 2.0) return "double";
@@ -411,11 +401,9 @@ export const TypeQuiz: React.FC = () => {
         if (nextCoverageResult.isComplete && unlockedTypeCount < 18) {
           // 次のタイプを自動解放！
           const nextType = PROGRESSIVE_TYPE_ORDER[unlockedTypeCount];
-          setUnlockedTypeCount(c => {
-            const nextCount = c + 1;
-            localStorage.setItem("poke-learn-unlocked-types", nextCount.toString());
-            return nextCount;
-          });
+          const nextCount = unlockedTypeCount + 1;
+          localStorage.setItem("poke-learn-unlocked-types", nextCount.toString());
+          setUnlockedTypeCount(nextCount);
           setJustUnlocked(TYPE_DETAILS[nextType]?.ja || nextType);
         }
       }

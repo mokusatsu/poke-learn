@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { LOCAL_POKEMONS } from "../data/localPokemons";
 import type { PokemonData } from "../data/localPokemons";
-import { getEffectiveness, getSingleMatchupMultiplier, TYPE_DETAILS, TYPE_LIST } from "../utils/typeMatrix";
+import { getEffectiveness, getSingleMatchupMultiplier, TYPE_DETAILS, TYPE_LIST, PROGRESSIVE_TYPE_ORDER, computeInferredCoverage } from "../utils/typeMatrix";
 import type { PokemonType } from "../utils/typeMatrix";
 import { TypeBadge } from "./TypeBadge";
 import { PokemonCard } from "./PokemonCard";
@@ -66,6 +66,14 @@ export const WeaknessAnalysis: React.FC = () => {
     const rawSelection = JSON.parse(localStorage.getItem(SELECTION_WEIGHTS_KEY) || "{}");
     const rawMedals = JSON.parse(localStorage.getItem(PURIFIED_BOSSES_KEY) || "[]");
 
+    // 段階的学習アンロック関連のロード
+    const rawCoveredPairs = JSON.parse(localStorage.getItem("poke-learn-covered-pairs") || "[]");
+    const unlockedTypeCount = parseInt(localStorage.getItem("poke-learn-unlocked-types") || "3", 10);
+    const activeTypes = PROGRESSIVE_TYPE_ORDER.slice(0, unlockedTypeCount);
+    const activeSet = new Set(activeTypes);
+    const coverageResult = computeInferredCoverage(rawCoveredPairs, activeTypes);
+    const inferredPairsSet = new Set(coverageResult.inferredPairs);
+
     setPurifiedMedals(rawMedals);
 
     const newAttacker: Record<PokemonType, number> = {} as any;
@@ -91,6 +99,9 @@ export const WeaknessAnalysis: React.FC = () => {
           rawCount++;
         }
 
+        const isInActivePool = activeSet.has(atk) && activeSet.has(def);
+        const isCovered = inferredPairsSet.has(key);
+
         if (rawCount > 0) {
           const avgWeight = rawSum / rawCount;
           if (avgWeight > 1.0) {
@@ -104,6 +115,10 @@ export const WeaknessAnalysis: React.FC = () => {
           } else {
             newMatchups[key] = 0; // ニュートラル（プレイ済、誤答・即答なし）
           }
+          totalScannedElements++;
+        } else if (isInActivePool && isCovered) {
+          // 誤答履歴はないが、カバー（直接・推論問わず）されている場合は得意とする（初期値として得意度100%）
+          newMatchups[key] = -100;
           totalScannedElements++;
         }
       });
