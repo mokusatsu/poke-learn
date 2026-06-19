@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { TYPE_DETAILS, getEffectiveness } from "../utils/typeMatrix";
 import type { PokemonType } from "../utils/typeMatrix";
 import { TypeBadge } from "./TypeBadge";
@@ -76,6 +76,7 @@ export const TypeQuiz: React.FC = () => {
   
   // 統計
   const [score, setScore] = useState<{ correct: number; total: number }>({ correct: 0, total: 0 });
+  const lastQuestionKeyRef = useRef<string>("");
 
   const activeTypes = PROGRESSIVE_TYPE_ORDER.slice(0, unlockedTypeCount);
 
@@ -106,38 +107,55 @@ export const TypeQuiz: React.FC = () => {
     const weightsRaw = localStorage.getItem(WEIGHTS_KEY);
     const weights: Record<string, number> = weightsRaw ? JSON.parse(weightsRaw) : {};
 
+    let attempts = 0;
+    const maxAttempts = 20;
+
     if (category.startsWith("simple-")) {
       // シンプル相性クイズ：現在有効なタイププールからランダムな攻撃・受けのペアを選択
-      const atk = activeTypes[Math.floor(Math.random() * activeTypes.length)];
-      const def = activeTypes[Math.floor(Math.random() * activeTypes.length)];
+      let atk: PokemonType = activeTypes[0];
+      let def: PokemonType = activeTypes[0];
+      let key = "";
+      do {
+        atk = activeTypes[Math.floor(Math.random() * activeTypes.length)];
+        def = activeTypes[Math.floor(Math.random() * activeTypes.length)];
+        key = `${category}:${atk}-${def}`;
+        attempts++;
+      } while (key === lastQuestionKeyRef.current && attempts < maxAttempts && activeTypes.length > 1);
+
+      lastQuestionKeyRef.current = key;
       setSimpleAtkType(atk);
       setSimpleDefType(def);
       setQuestionType(null);
       setQuestionComposite(null);
     } else if (category.startsWith("single-")) {
-      let selectedType: PokemonType;
-
-      if (isFocusedMode && Object.keys(weights).length > 0) {
-        // 苦手克服モード: 誤答数の多いタイプほど当選確率を高める (アクティブプール内に制限)
-        const candidates = activeTypes.map(t => ({
-          type: t,
-          weight: (weights[t] || 0) + 1,
-        }));
-        const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
-        let randomNum = Math.random() * totalWeight;
-        
-        selectedType = activeTypes[0];
-        for (const c of candidates) {
-          randomNum -= c.weight;
-          if (randomNum <= 0) {
-            selectedType = c.type;
-            break;
+      let selectedType: PokemonType = activeTypes[0];
+      let key = "";
+      do {
+        if (isFocusedMode && Object.keys(weights).length > 0) {
+          // 苦手克服モード: 誤答数の多いタイプほど当選確率を高める (アクティブプール内に制限)
+          const candidates = activeTypes.map(t => ({
+            type: t,
+            weight: (weights[t] || 0) + 1,
+          }));
+          const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
+          let randomNum = Math.random() * totalWeight;
+          
+          selectedType = activeTypes[0];
+          for (const c of candidates) {
+            randomNum -= c.weight;
+            if (randomNum <= 0) {
+              selectedType = c.type;
+              break;
+            }
           }
+        } else {
+          selectedType = activeTypes[Math.floor(Math.random() * activeTypes.length)];
         }
-      } else {
-        selectedType = activeTypes[Math.floor(Math.random() * activeTypes.length)];
-      }
+        key = `${category}:${selectedType}`;
+        attempts++;
+      } while (key === lastQuestionKeyRef.current && attempts < maxAttempts && activeTypes.length > 1);
 
+      lastQuestionKeyRef.current = key;
       setQuestionType(selectedType);
       setQuestionComposite(null);
       setSimpleAtkType(null);
@@ -152,32 +170,37 @@ export const TypeQuiz: React.FC = () => {
       }
 
       let selectedComp: [PokemonType, PokemonType];
+      let key = "";
+      do {
+        if (composites.length === 0) {
+          // フォールバック
+          selectedComp = [activeTypes[0], activeTypes[1] || activeTypes[0]];
+        } else if (isFocusedMode && Object.keys(weights).length > 0) {
+          const candidates = composites.map(c => {
+            const keyName = `${c[0]}-${c[1]}`;
+            const failCount = (weights[keyName] || 0) + (weights[c[0]] || 0) + (weights[c[1]] || 0);
+            return { comp: c, weight: failCount + 1 };
+          });
 
-      if (composites.length === 0) {
-        // フォールバック
-        selectedComp = [activeTypes[0], activeTypes[1] || activeTypes[0]];
-      } else if (isFocusedMode && Object.keys(weights).length > 0) {
-        const candidates = composites.map(c => {
-          const key = `${c[0]}-${c[1]}`;
-          const failCount = (weights[key] || 0) + (weights[c[0]] || 0) + (weights[c[1]] || 0);
-          return { comp: c, weight: failCount + 1 };
-        });
-
-        const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
-        let randomNum = Math.random() * totalWeight;
-        
-        selectedComp = composites[0];
-        for (const c of candidates) {
-          randomNum -= c.weight;
-          if (randomNum <= 0) {
-            selectedComp = c.comp;
-            break;
+          const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
+          let randomNum = Math.random() * totalWeight;
+          
+          selectedComp = composites[0];
+          for (const c of candidates) {
+            randomNum -= c.weight;
+            if (randomNum <= 0) {
+              selectedComp = c.comp;
+              break;
+            }
           }
+        } else {
+          selectedComp = composites[Math.floor(Math.random() * composites.length)];
         }
-      } else {
-        selectedComp = composites[Math.floor(Math.random() * composites.length)];
-      }
+        key = `${category}:${selectedComp[0]}-${selectedComp[1]}`;
+        attempts++;
+      } while (key === lastQuestionKeyRef.current && attempts < maxAttempts && (composites.length > 1 || (composites.length === 0 && activeTypes.length > 1)));
 
+      lastQuestionKeyRef.current = key;
       setQuestionComposite(selectedComp);
       setQuestionType(null);
       setSimpleAtkType(null);
@@ -187,6 +210,7 @@ export const TypeQuiz: React.FC = () => {
 
   // カテゴリや出題モード、有効タイプ数が切り替わったら再出題
   useEffect(() => {
+    if (isAnswered) return;
     generateQuestion();
   }, [category, isFocusedMode, unlockedTypeCount]);
 
@@ -220,6 +244,7 @@ export const TypeQuiz: React.FC = () => {
   const handleManualTypeCountChange = (count: number) => {
     const safeCount = Math.min(18, Math.max(3, count));
     setUnlockedTypeCount(safeCount);
+    setIsAnswered(false);
     localStorage.setItem("poke-learn-unlocked-types", safeCount.toString());
   };
 
