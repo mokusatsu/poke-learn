@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { TYPE_DETAILS, getEffectiveness } from "../utils/typeMatrix";
+import { TYPE_DETAILS, getEffectiveness, computeInferredCoverage, isAsymmetricPair } from "../utils/typeMatrix";
 import type { PokemonType } from "../utils/typeMatrix";
 import { TypeBadge } from "./TypeBadge";
 import { MaxPowerQuiz } from "./MaxPowerQuiz";
@@ -79,18 +79,19 @@ export const TypeQuiz: React.FC = () => {
 
   const activeTypes = PROGRESSIVE_TYPE_ORDER.slice(0, unlockedTypeCount);
 
-  // カバー率 (Coverage) の計算
-  const getActiveCoveredPairsCount = (pairsList: string[]) => {
-    const activeSet = new Set(activeTypes);
-    return pairsList.filter(p => {
-      const [atk, def] = p.split("-") as PokemonType[];
-      return activeSet.has(atk) && activeSet.has(def);
-    }).length;
-  };
+  // 知識伝播・推論を含めたカバー率の計算
+  const activeSet = new Set(activeTypes);
+  const coverageResult = computeInferredCoverage(coveredPairs, activeTypes);
+  const activeCoveredCount = coverageResult.activeCoveredCount;
+  const totalPossiblePairs = coverageResult.totalPossiblePairs;
+  const coveragePercent = coverageResult.coveragePercent;
 
-  const activeCoveredCount = getActiveCoveredPairsCount(coveredPairs);
-  const totalPossiblePairs = unlockedTypeCount * unlockedTypeCount;
-  const coveragePercent = Math.round((activeCoveredCount / totalPossiblePairs) * 100);
+  // 内訳の計算
+  const activeDirectPairsCount = coveredPairs.filter(p => {
+    const [atk, def] = p.split("-") as PokemonType[];
+    return activeSet.has(atk) && activeSet.has(def);
+  }).length;
+  const inferredPairsCount = activeCoveredCount - activeDirectPairsCount;
 
   // 出題タイプ（単一、複合、またはシンプル）の重み付け抽選
   const generateQuestion = () => {
@@ -107,11 +108,44 @@ export const TypeQuiz: React.FC = () => {
     const weights: Record<string, number> = weightsRaw ? JSON.parse(weightsRaw) : {};
 
     if (category.startsWith("simple-")) {
-      // シンプル相性クイズ：現在有効なタイププールからランダムな攻撃・受けのペアを選択
-      const atk = activeTypes[Math.floor(Math.random() * activeTypes.length)];
-      const def = activeTypes[Math.floor(Math.random() * activeTypes.length)];
-      setSimpleAtkType(atk);
-      setSimpleDefType(def);
+      // シンプル相性クイズ：現在有効なタイププールからウェイト付きで攻撃・受けのペアを選択
+      const candidates: { atk: PokemonType; def: PokemonType; weight: number }[] = [];
+      
+      for (const atk of activeTypes) {
+        for (const def of activeTypes) {
+          const key = `${atk}-${def}`;
+          let weight = 1.0;
+          
+          // 未カバーの非対称ペアはウェイトを2倍にする（逆ペナルティ）
+          const isCovered = coveredPairs.includes(key);
+          if (!isCovered && isAsymmetricPair(atk, def)) {
+            weight *= 2.0;
+          }
+          
+          // 苦手克服モードがONの場合、誤答履歴に基づく重みを追加
+          if (isFocusedMode && weights[key]) {
+            weight += weights[key] * 2.0;
+          }
+          
+          candidates.push({ atk, def, weight });
+        }
+      }
+      
+      // ルーレット選択
+      const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
+      let randomNum = Math.random() * totalWeight;
+      
+      let selectedPair = candidates[0] || { atk: activeTypes[0], def: activeTypes[0] };
+      for (const c of candidates) {
+        randomNum -= c.weight;
+        if (randomNum <= 0) {
+          selectedPair = c;
+          break;
+        }
+      }
+
+      setSimpleAtkType(selectedPair.atk);
+      setSimpleDefType(selectedPair.def);
       setQuestionType(null);
       setQuestionComposite(null);
     } else if (category.startsWith("single-")) {
@@ -335,11 +369,10 @@ export const TypeQuiz: React.FC = () => {
         setCoveredPairs(newPairs);
         localStorage.setItem("poke-learn-covered-pairs", JSON.stringify(newPairs));
 
-        // 更新後のプール内でのカバー数を再計算
-        const nextActiveCoveredCount = getActiveCoveredPairsCount(newPairs);
-        const nextTotalPossiblePairs = unlockedTypeCount * unlockedTypeCount;
+        // 更新後のプール内でのカバー情報を再計算
+        const nextCoverageResult = computeInferredCoverage(newPairs, activeTypes);
 
-        if (nextActiveCoveredCount === nextTotalPossiblePairs && unlockedTypeCount < 18) {
+        if (nextCoverageResult.isComplete && unlockedTypeCount < 18) {
           // 次のタイプを自動解放！
           const nextType = PROGRESSIVE_TYPE_ORDER[unlockedTypeCount];
           setUnlockedTypeCount(c => {
@@ -519,9 +552,31 @@ export const TypeQuiz: React.FC = () => {
                   </div>
                 </div>
 
+                <div style={{ display: "flex", flexDirection: "column", gap: "2px", borderBottom: "1px solid rgba(255, 255, 255, 0.05)", paddingBottom: "6px", width: "100%" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span>実効カバー率 (推論込):</span>
+                    <strong style={{ color: "var(--accent-cyan)" }}>{coveragePercent}% ({activeCoveredCount}/{totalPossiblePairs})</strong>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.7rem", color: "var(--text-secondary)", paddingLeft: "8px" }}>
+                    <span>└ 直接解答:</span>
+                    <span>{activeDirectPairsCount} ペア</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.7rem", color: "var(--text-secondary)", paddingLeft: "8px" }}>
+                    <span>└ 推論伝播:</span>
+                    <span>{inferredPairsCount} ペア</span>
+                  </div>
+                </div>
+
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span>カバー済相性ペア数:</span>
-                  <strong>{activeCoveredCount} / {totalPossiblePairs}</strong>
+                  <span>特徴的相性 (非等倍):</span>
+                  <strong>{coverageResult.characteristicCoveredCount} / {coverageResult.characteristicCount}</strong>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span>非対称相性 (要直接回答):</span>
+                  <strong style={{ color: coverageResult.asymmetricCoveredCount === coverageResult.asymmetricCount ? "var(--success)" : "var(--accent-cyan)" }}>
+                    {coverageResult.asymmetricCoveredCount} / {coverageResult.asymmetricCount}
+                  </strong>
                 </div>
 
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -577,11 +632,21 @@ export const TypeQuiz: React.FC = () => {
               <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>/18</span>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-              <span>📊 網羅率:</span>
-              <span style={{ fontWeight: 700, color: coveragePercent === 100 ? "var(--success)" : "var(--accent-cyan)" }}>
-                {coveragePercent}% ({activeCoveredCount}/{totalPossiblePairs})
-              </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <span>📊 網羅率 (推論込):</span>
+                <span style={{ fontWeight: 700, color: coveragePercent === 100 ? "var(--success)" : "var(--accent-cyan)" }}>
+                  {coveragePercent}%
+                </span>
+                <span style={{ color: "var(--text-secondary)", fontSize: "0.75rem" }}>
+                  ({activeCoveredCount}/{totalPossiblePairs})
+                </span>
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", display: "flex", gap: "10px" }}>
+                <span>[直接: {activeDirectPairsCount} / 推論: {inferredPairsCount}]</span>
+                <span>特徴的: {coverageResult.characteristicCoveredCount}/{coverageResult.characteristicCount}</span>
+                <span>非対称: {coverageResult.asymmetricCoveredCount}/{coverageResult.asymmetricCount}</span>
+              </div>
             </div>
 
             {unlockedTypeCount < 18 ? (
