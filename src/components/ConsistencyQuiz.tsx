@@ -32,6 +32,11 @@ export const ConsistencyQuiz: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // 初回マウント時にクイズを初期化
+  useEffect(() => {
+    setupQuiz();
+  }, []);
+
   // 相手チーム状態
   const [oppTeam, setOppTeam] = useState<PokemonData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
