@@ -364,6 +364,6 @@ input:checked + .toggle-bg .toggle-circle {
 
 @media (max-width: 767px) {
   .rationale-container {
-    flex-direction: column-reverse;
+    flex-direction: column;
   }
 }

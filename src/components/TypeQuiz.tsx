@@ -1283,6 +1283,13 @@ export const TypeQuiz: React.FC = () => {
             </div>
             
             <div className="rationale-container">
+              {/* 考察テキスト */}
+              <div style={{ flex: 1, minWidth: "200px" }}>
+                <p style={{ fontSize: "0.8rem", lineHeight: "1.45", margin: 0, color: "var(--text-primary)" }}>
+                  {typeMatchupRationales[simpleAtkType]?.[simpleDefType]?.rationale || "この相性に関する詳細な考察データはありません。"}
+                </p>
+              </div>
+
               {/* 画像エリア */}
               {!rationaleImageError && (
                 <div style={{ flex: "0 0 160px", maxWidth: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", backgroundColor: "rgba(0,0,0,0.2)" }}>
@@ -1294,13 +1301,6 @@ export const TypeQuiz: React.FC = () => {
                   />
                 </div>
               )}
-              
-              {/* 考察テキスト */}
-              <div style={{ flex: 1, minWidth: "200px" }}>
-                <p style={{ fontSize: "0.8rem", lineHeight: "1.45", margin: 0, color: "var(--text-primary)" }}>
-                  {typeMatchupRationales[simpleAtkType]?.[simpleDefType]?.rationale || "この相性に関する詳細な考察データはありません。"}
-                </p>
-              </div>
             </div>
           </div>
         )}
@@ -1353,29 +1353,34 @@ export const TypeQuiz: React.FC = () => {
                 
                 return (
                   <div key={`${attacker}-${defender}-${idx}`} style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "8px",
                     paddingTop: idx > 0 ? "10px" : "0",
                     borderTop: idx > 0 ? "1px dashed rgba(255, 255, 255, 0.1)" : "none"
                   }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <TypeBadge type={attacker} size="sm" />
-                      <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>→</span>
-                      <TypeBadge type={defender} size="sm" />
-                      <span style={{
-                        fontSize: "0.7rem",
-                        fontWeight: "bold",
-                        padding: "1px 6px",
-                        borderRadius: "4px",
-                        backgroundColor: "rgba(255, 255, 255, 0.08)",
-                        color: rationaleData?.relation === "ばつぐん" ? "var(--success)" : rationaleData?.relation === "いまひとつ" ? "var(--accent-cyan)" : "var(--error)"
-                      }}>
-                        {rationaleData?.relation || "等倍"}
-                      </span>
-                    </div>
-
                     <div className="rationale-container">
+                      {/* 左カラム：タイプ相性の矢印表示 ＋ 考察文 */}
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "8px", minWidth: "200px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <TypeBadge type={attacker} size="sm" />
+                          <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>→</span>
+                          <TypeBadge type={defender} size="sm" />
+                          <span style={{
+                            fontSize: "0.7rem",
+                            fontWeight: "bold",
+                            padding: "1px 6px",
+                            borderRadius: "4px",
+                            backgroundColor: "rgba(255, 255, 255, 0.08)",
+                            color: rationaleData?.relation === "ばつぐん" ? "var(--success)" : rationaleData?.relation === "いまひとつ" ? "var(--accent-cyan)" : "var(--error)"
+                          }}>
+                            {rationaleData?.relation || "等倍"}
+                          </span>
+                        </div>
+                        
+                        <p style={{ fontSize: "0.8rem", lineHeight: "1.45", margin: 0, color: "var(--text-primary)" }}>
+                          {rationaleData?.rationale || "この相性に関する詳細な考察データはありません。"}
+                        </p>
+                      </div>
+
+                      {/* 右カラム：画像 */}
                       <div className="rationale-image-container" style={{ flex: "0 0 160px", maxWidth: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", backgroundColor: "rgba(0,0,0,0.2)" }}>
                         <img
                           src={`/images/matchup-rationales/${attacker}-${defender}.png`}
@@ -1385,12 +1390,6 @@ export const TypeQuiz: React.FC = () => {
                           }}
                           style={{ width: "100%", height: "auto", display: "block" }}
                         />
-                      </div>
-                      
-                      <div style={{ flex: 1, minWidth: "200px" }}>
-                        <p style={{ fontSize: "0.8rem", lineHeight: "1.45", margin: 0, color: "var(--text-primary)" }}>
-                          {rationaleData?.rationale || "この相性に関する詳細な考察データはありません。"}
-                        </p>
                       </div>
                     </div>
                   </div>

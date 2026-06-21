@@ -526,6 +526,14 @@ export const ConsistencyQuiz: React.FC = () => {
                   </div>
 
                   <div className="rationale-container">
+                    {/* 考察テキスト */}
+                    <div style={{ flex: 1, minWidth: "180px" }}>
+                      <p style={{ fontSize: "0.75rem", lineHeight: "1.45", margin: 0, color: "var(--text-primary)" }}>
+                        {rationaleData?.rationale || "この相性に関する詳細な考察データはありません。"}
+                      </p>
+                    </div>
+
+                    {/* 画像 */}
                     {!rationaleImageError && (
                       <div className="rationale-image-container" style={{ flex: "0 0 140px", maxWidth: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", backgroundColor: "rgba(0,0,0,0.2)" }}>
                         <img
@@ -538,12 +546,6 @@ export const ConsistencyQuiz: React.FC = () => {
                         />
                       </div>
                     )}
-                    
-                    <div style={{ flex: 1, minWidth: "180px" }}>
-                      <p style={{ fontSize: "0.75rem", lineHeight: "1.45", margin: 0, color: "var(--text-primary)" }}>
-                        {rationaleData?.rationale || "この相性に関する詳細な考察データはありません。"}
-                      </p>
-                    </div>
                   </div>
                 </div>
               );
