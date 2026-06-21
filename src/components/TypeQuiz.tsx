@@ -1194,7 +1194,16 @@ export const TypeQuiz: React.FC = () => {
                     <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>正解のタイプ:</span>
                     {correctSingleAnswers.length > 0 ? (
                       correctSingleAnswers.map(t => (
-                        <TypeBadge key={`correct-${t}`} type={t} size="sm" />
+                        <TypeBadge
+                          key={`correct-${t}`}
+                          type={t}
+                          size="sm"
+                          clickable={true}
+                          onClick={() => {
+                            setSelectedRationaleType(t);
+                            setRationaleImageError(false);
+                          }}
+                        />
                       ))
                     ) : (
                       <strong style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>該当なし</strong>
@@ -1206,7 +1215,16 @@ export const TypeQuiz: React.FC = () => {
                       <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>正解 【4倍】:</span>
                       {correct4x.length > 0 ? (
                         correct4x.map(t => (
-                          <TypeBadge key={`correct-4x-${t}`} type={t} size="sm" />
+                          <TypeBadge
+                            key={`correct-4x-${t}`}
+                            type={t}
+                            size="sm"
+                            clickable={true}
+                            onClick={() => {
+                              setSelectedRationaleType(t);
+                              setRationaleImageError(false);
+                            }}
+                          />
                         ))
                       ) : (
                         <strong style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>なし</strong>
@@ -1217,7 +1235,16 @@ export const TypeQuiz: React.FC = () => {
                       <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>【2倍】:</span>
                       {correct2x.length > 0 ? (
                         correct2x.map(t => (
-                          <TypeBadge key={`correct-2x-${t}`} type={t} size="sm" />
+                          <TypeBadge
+                            key={`correct-2x-${t}`}
+                            type={t}
+                            size="sm"
+                            clickable={true}
+                            onClick={() => {
+                              setSelectedRationaleType(t);
+                              setRationaleImageError(false);
+                            }}
+                          />
                         ))
                       ) : (
                         <strong style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>なし</strong>
