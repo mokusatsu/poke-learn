@@ -32,6 +32,11 @@ export const ConsistencyQuiz: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // 初回マウント時にクイズを初期化
+  useEffect(() => {
+    setupQuiz();
+  }, []);
+
   // 相手チーム状態
   const [oppTeam, setOppTeam] = useState<PokemonData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -535,7 +540,7 @@ export const ConsistencyQuiz: React.FC = () => {
 
                     {/* 画像 */}
                     {!rationaleImageError && (
-                      <div className="rationale-image-container" style={{ flex: "0 0 140px", maxWidth: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", backgroundColor: "rgba(0,0,0,0.2)" }}>
+                      <div className="rationale-image-container">
                         <img
                           src={`/images/matchup-rationales/${selectedRationaleAtk}-${selectedRationaleDef}.png`}
                           alt={`${TYPE_DETAILS[selectedRationaleAtk].ja} から ${TYPE_DETAILS[selectedRationaleDef].ja} への相性`}

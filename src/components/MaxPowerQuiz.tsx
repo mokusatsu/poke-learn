@@ -951,7 +951,7 @@ export const MaxPowerQuiz: React.FC = () => {
 
                           {/* 右カラム：画像 */}
                           {!rationaleImageError && (
-                            <div className="rationale-image-container" style={{ flex: "0 0 140px", maxWidth: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", backgroundColor: "rgba(0,0,0,0.2)" }}>
+                            <div className="rationale-image-container">
                               <img
                                 src={`/images/matchup-rationales/${attacker}-${defender}.png`}
                                 alt={`${TYPE_DETAILS[attacker].ja} から ${TYPE_DETAILS[defender].ja} への相性`}
