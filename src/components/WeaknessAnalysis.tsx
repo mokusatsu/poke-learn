@@ -5,6 +5,7 @@ import { getEffectiveness, getSingleMatchupMultiplier, TYPE_DETAILS, TYPE_LIST, 
 import type { PokemonType } from "../utils/typeMatrix";
 import { TypeBadge } from "./TypeBadge";
 import { PokemonCard } from "./PokemonCard";
+import { typeMatchupRationales } from "../data/typeMatchupRationales";
 
 // localStorageキー一覧
 const TYPE_WEIGHTS_KEY = "poke-learn-quiz-weights";
@@ -1144,7 +1145,7 @@ export const WeaknessAnalysis: React.FC = () => {
                             } as React.CSSProperties),
                             ...getGlowStyle(score)
                           }}
-                          title={`${TYPE_DETAILS[atk].ja} ➡ ${TYPE_DETAILS[def].ja} (倍率: ${eff}x, 苦手度: ${score || 0})`}
+                          title={`${TYPE_DETAILS[atk].ja} ➡ ${TYPE_DETAILS[def].ja} (倍率: ${eff}x, 苦手度: ${score || 0})${typeMatchupRationales[atk]?.[def] ? `\n【考察】: ${typeMatchupRationales[atk][def].rationale}` : ""}`}
                         >
                           {symbol}
                           {score !== undefined && score > 0 && (

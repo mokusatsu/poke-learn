@@ -5,6 +5,7 @@ import { getEffectiveness, getSingleMatchupMultiplier, TYPE_DETAILS, TYPE_LIST }
 import type { PokemonType } from "../utils/typeMatrix";
 import { PokemonCard } from "./PokemonCard";
 import { TypeBadge } from "./TypeBadge";
+import { typeMatchupRationales } from "../data/typeMatchupRationales";
 
 // IRT弱点マトリクスのlocalStorageキー
 const WEAKNESS_MATRIX_KEY = "poke-learn-max-power-weights";
@@ -33,6 +34,10 @@ export const MaxPowerQuiz: React.FC = () => {
   const [elapsedMs, setElapsedMs] = useState<number>(0);
   const [results, setResults] = useState<QuestionResult[]>([]);
   const [quizMode, setQuizMode] = useState<"normal" | "expert">("normal");
+  
+  // 考察表示用ステート
+  const [selectedRationaleType, setSelectedRationaleType] = useState<PokemonType | null>(null);
+  const [rationaleImageError, setRationaleImageError] = useState<boolean>(false);
   
   // レスポンシブ用状態
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
@@ -296,6 +301,8 @@ export const MaxPowerQuiz: React.FC = () => {
       bestTypes
     });
     setSelectedType(null);
+    setSelectedRationaleType(null);
+    setRationaleImageError(false);
     setElapsedMs(0);
     elapsedRef.current = 0;
     setQuestionIndex(nextIndex);
@@ -826,7 +833,7 @@ export const MaxPowerQuiz: React.FC = () => {
 
             {/* 計算プロセスの展開 */}
             <div style={{ fontSize: "0.75rem", background: "rgba(0,0,0,0.2)", padding: "10px", borderRadius: "8px", display: "flex", flexDirection: "column", gap: "4px" }}>
-              <strong style={{ color: "var(--text-secondary)" }}>💡 乗算計算プロセスの展開 (自己修正用):</strong>
+              <strong style={{ color: "var(--text-secondary)" }}>💡 乗算計算プロセスの展開 (自己修正用・クリックで覚え方を表示):</strong>
               {currentQuestion.hand.map(type => {
                 const isBest = currentQuestion.bestTypes.includes(type);
                 const isSelected = selectedType === type;
@@ -836,23 +843,133 @@ export const MaxPowerQuiz: React.FC = () => {
                 let bgStyle = "transparent";
                 if (isBest) {
                   textColor = "var(--success)";
-                  bgStyle = "rgba(16, 185, 129, 0.05)";
+                  bgStyle = "rgba(16, 185, 129, 0.08)";
                 } else if (isSelected) {
                   textColor = "var(--error)";
-                  bgStyle = "rgba(239, 68, 68, 0.05)";
+                  bgStyle = "rgba(239, 68, 68, 0.08)";
                 }
 
+                const isRationaleSelected = selectedRationaleType === type;
+
                 return (
-                  <div key={`breakdown-${type}`} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "3px 6px", borderRadius: "4px", backgroundColor: bgStyle }}>
+                  <div
+                    key={`breakdown-${type}`}
+                    onClick={() => {
+                      setSelectedRationaleType(type);
+                      setRationaleImageError(false);
+                    }}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      padding: "4px 8px",
+                      borderRadius: "6px",
+                      backgroundColor: bgStyle,
+                      cursor: "pointer",
+                      border: isRationaleSelected ? "1px solid var(--accent-cyan)" : "1px solid transparent",
+                      transition: "all 0.15s ease"
+                    }}
+                    title="クリックして相性の覚え方を表示"
+                  >
                     <span style={{ color: textColor, fontWeight: isBest || isSelected ? 700 : 400 }}>{formula}</span>
                     <span style={{ fontSize: "0.7rem", fontWeight: 800, color: isBest ? "var(--success)" : "var(--text-muted)" }}>
                       {isBest ? "【最大打点】" : ""}
                       {isSelected ? "【あなたの選択】" : ""}
+                      {" 💡"}
                     </span>
                   </div>
                 );
               })}
             </div>
+
+            {/* 相性の覚え方アコーディオン */}
+            {selectedRationaleType && currentQuestion && (() => {
+              const oppTypes = currentQuestion.opp.types;
+              const matchups = oppTypes.map(defType => ({
+                attacker: selectedRationaleType,
+                defender: defType
+              }));
+
+              return (
+                <div className="glass-panel animate-pop-in" style={{
+                  marginTop: "6px",
+                  padding: "12px",
+                  border: "1px solid var(--border-glass-active)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  boxSizing: "border-box"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255, 255, 255, 0.08)", paddingBottom: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span style={{ fontSize: "1rem" }}>💡</span>
+                      <strong style={{ fontSize: "0.85rem", color: "var(--accent-cyan)" }}>相性の覚え方 ({TYPE_DETAILS[selectedRationaleType].ja})</strong>
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedRationaleType(null);
+                      }}
+                      className="tab-btn"
+                      style={{ fontSize: "0.7rem", padding: "1px 6px" }}
+                    >
+                      閉じる
+                    </button>
+                  </div>
+
+                  {matchups.map(({ attacker, defender }, idx) => {
+                    const rationaleData = typeMatchupRationales[attacker]?.[defender];
+                    
+                    return (
+                      <div key={`${attacker}-${defender}-${idx}`} style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "8px",
+                        paddingTop: idx > 0 ? "10px" : "0",
+                        borderTop: idx > 0 ? "1px dashed rgba(255, 255, 255, 0.1)" : "none"
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <TypeBadge type={attacker} size="sm" />
+                          <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>→</span>
+                          <TypeBadge type={defender} size="sm" />
+                          <span style={{
+                            fontSize: "0.7rem",
+                            fontWeight: "bold",
+                            padding: "1px 6px",
+                            borderRadius: "4px",
+                            backgroundColor: "rgba(255, 255, 255, 0.08)",
+                            color: rationaleData?.relation === "ばつぐん" ? "var(--success)" : rationaleData?.relation === "いまひとつ" ? "var(--accent-cyan)" : "var(--error)"
+                          }}>
+                            {rationaleData?.relation || "等倍"}
+                          </span>
+                        </div>
+
+                        <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", flexWrap: "wrap-reverse" }}>
+                          {!rationaleImageError && (
+                            <div className="rationale-image-container" style={{ flex: "0 0 140px", maxWidth: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", backgroundColor: "rgba(0,0,0,0.2)" }}>
+                              <img
+                                src={`/images/matchup-rationales/${attacker}-${defender}.png`}
+                                alt={`${TYPE_DETAILS[attacker].ja} から ${TYPE_DETAILS[defender].ja} への相性`}
+                                onError={(e) => {
+                                  (e.target as HTMLElement).parentElement!.style.display = "none";
+                                }}
+                                style={{ width: "100%", height: "auto", display: "block" }}
+                              />
+                            </div>
+                          )}
+                          
+                          <div style={{ flex: 1, minWidth: "180px" }}>
+                            <p style={{ fontSize: "0.75rem", lineHeight: "1.45", margin: 0, color: "var(--text-primary)" }}>
+                              {rationaleData?.rationale || "この相性に関する詳細な考察データはありません。"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
             {/* 下部のボタンは上部に移動したため削除 */}
           </div>
