@@ -76,6 +76,22 @@ export const TypeQuiz: React.FC = () => {
 
   const activeTypes = PROGRESSIVE_TYPE_ORDER.slice(0, unlockedTypeCount);
 
+  const hasRationale = (type: PokemonType): boolean => {
+    if (category === "single-offense" && questionType) {
+      return !!typeMatchupRationales[questionType]?.[type]?.rationale;
+    }
+    if (category === "single-defense" && questionType) {
+      return !!typeMatchupRationales[type]?.[questionType]?.rationale;
+    }
+    if ((category === "composite-offense" || category === "composite-defense") && questionComposite) {
+      return (
+        !!typeMatchupRationales[type]?.[questionComposite[0]]?.rationale ||
+        !!typeMatchupRationales[type]?.[questionComposite[1]]?.rationale
+      );
+    }
+    return false;
+  };
+
   // 知識伝播・推論を含めたカバー率の計算
   const activeSet = new Set(activeTypes);
   const coverageResult = computeInferredCoverage(coveredPairs, activeTypes);
@@ -977,7 +993,7 @@ export const TypeQuiz: React.FC = () => {
                     opacity,
                   }}
                 >
-                  {textPrefix}{detail.ja}{isAnswered && !isCorrect && " 💡"}
+                  {textPrefix}{detail.ja}{isAnswered && !isCorrect && hasRationale(type) && " 💡"}
                 </button>
               );
             })}
@@ -1042,6 +1058,7 @@ export const TypeQuiz: React.FC = () => {
                       size="sm"
                       clickable={true}
                       selected={isSelected}
+                      showBulb={isAnswered && !isCorrect && hasRationale(type)}
                       onClick={() => {
                         if (isAnswered) {
                           setSelectedRationaleType(type);
@@ -1111,6 +1128,7 @@ export const TypeQuiz: React.FC = () => {
                       size="sm"
                       clickable={true}
                       selected={isSelected}
+                      showBulb={isAnswered && !isCorrect && hasRationale(type)}
                       onClick={() => {
                         if (isAnswered) {
                           setSelectedRationaleType(type);
@@ -1172,23 +1190,40 @@ export const TypeQuiz: React.FC = () => {
                     </strong>
                   </>
                 ) : category.startsWith("single-") ? (
-                  <>
-                    正解のタイプ:{" "}
-                    <strong>
-                      {correctSingleAnswers.map(t => TYPE_DETAILS[t].ja).join(", ") || "該当なし"}
-                    </strong>
-                  </>
+                  <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
+                    <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>正解のタイプ:</span>
+                    {correctSingleAnswers.length > 0 ? (
+                      correctSingleAnswers.map(t => (
+                        <TypeBadge key={`correct-${t}`} type={t} size="sm" />
+                      ))
+                    ) : (
+                      <strong style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>該当なし</strong>
+                    )}
+                  </div>
                 ) : (
-                  <>
-                    正解: 【4倍】
-                    <strong>
-                      {correct4x.map(t => TYPE_DETAILS[t].ja).join(", ") || "なし"}
-                    </strong>{" "}
-                    / 【2倍】
-                    <strong>
-                      {correct2x.map(t => TYPE_DETAILS[t].ja).join(", ") || "なし"}
-                    </strong>
-                  </>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginTop: "2px" }}>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>正解 【4倍】:</span>
+                      {correct4x.length > 0 ? (
+                        correct4x.map(t => (
+                          <TypeBadge key={`correct-4x-${t}`} type={t} size="sm" />
+                        ))
+                      ) : (
+                        <strong style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>なし</strong>
+                      )}
+                    </div>
+                    <span style={{ color: "var(--text-muted)" }}>/</span>
+                    <div style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>【2倍】:</span>
+                      {correct2x.length > 0 ? (
+                        correct2x.map(t => (
+                          <TypeBadge key={`correct-2x-${t}`} type={t} size="sm" />
+                        ))
+                      ) : (
+                        <strong style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>なし</strong>
+                      )}
+                    </div>
+                  </div>
                 )}
               </span>
             </div>

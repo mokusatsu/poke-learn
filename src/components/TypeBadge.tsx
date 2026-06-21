@@ -7,6 +7,7 @@ interface TypeBadgeProps {
   size?: "sm" | "md" | "lg";
   clickable?: boolean;
   selected?: boolean;
+  showBulb?: boolean;
   onClick?: () => void;
   style?: React.CSSProperties;
 }
@@ -16,6 +17,7 @@ export const TypeBadge: React.FC<TypeBadgeProps> = ({
   size = "md",
   clickable = false,
   selected = false,
+  showBulb = false,
   onClick,
   style,
 }) => {
@@ -83,7 +85,7 @@ export const TypeBadge: React.FC<TypeBadgeProps> = ({
       onMouseLeave={handleMouseLeave}
       title={`${detail.ja}タイプ`}
     >
-      {detail.ja}
+      {detail.ja}{showBulb && " 💡"}
     </div>
   );
 };
