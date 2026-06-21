@@ -164,6 +164,7 @@ export const SelectionQuiz: React.FC = () => {
     const requestId = ++requestCounterRef.current;
     setLoading(true);
     setIsAnswered(false);
+    setIsCorrect(false);
     setSelectedIndices([]);
 
     // 苦手克服データ取得
@@ -580,7 +581,12 @@ export const SelectionQuiz: React.FC = () => {
         <div className="mobile-only" style={{ flex: 1 }}>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value as SelectionQuizCategory)}
+            onChange={(e) => {
+              setIsAnswered(false);
+              setIsCorrect(false);
+              setSelectedIndices([]);
+              setCategory(e.target.value as SelectionQuizCategory);
+            }}
             style={{
               width: "100%",
               backgroundColor: "rgba(255, 255, 255, 0.08)",
@@ -613,7 +619,12 @@ export const SelectionQuiz: React.FC = () => {
           ).map(btn => (
             <button
               key={btn.id}
-              onClick={() => setCategory(btn.id)}
+              onClick={() => {
+                setIsAnswered(false);
+                setIsCorrect(false);
+                setSelectedIndices([]);
+                setCategory(btn.id);
+              }}
               className="tab-btn"
               style={{
                 fontSize: "0.75rem",
@@ -632,7 +643,12 @@ export const SelectionQuiz: React.FC = () => {
           <input
             type="checkbox"
             checked={isFocusedMode}
-            onChange={(e) => setIsFocusedMode(e.target.checked)}
+            onChange={(e) => {
+              setIsAnswered(false);
+              setIsCorrect(false);
+              setSelectedIndices([]);
+              setIsFocusedMode(e.target.checked);
+            }}
             style={{ display: "none" }}
           />
           <div className="toggle-bg" style={{ width: "36px", height: "18px" }}>

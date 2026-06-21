@@ -55,9 +55,13 @@ export const ConsistencyQuiz: React.FC = () => {
   };
 
   // クイズの初期化（解が一貫するまでループする事前検証付き）
-  const setupQuiz = async () => {
+  const setupQuiz = async (
+    targetSize = teamSize,
+    targetFocusedMode = isFocusedMode
+  ) => {
     setLoading(true);
     setIsAnswered(false);
+    setIsCorrect(false);
     setSelectedTypes([]);
     setSelectedRationaleAtk(null);
     setSelectedRationaleDef(null);
@@ -71,10 +75,10 @@ export const ConsistencyQuiz: React.FC = () => {
     while (attempts < 50) {
       attempts++;
       // 動的フェッチ
-      let draft = await generateRandomTeam(teamSize);
+      let draft = await generateRandomTeam(targetSize);
 
       // 苦手克服モード: 誤答した実績のあるタイプを相手チームに配置しやすくする
-      if (isFocusedMode && Object.keys(weights).length > 0) {
+      if (targetFocusedMode && Object.keys(weights).length > 0) {
         const sortedFailedTypes = Object.entries(weights)
           .sort((a, b) => b[1] - a[1])
           .map(entry => entry[0] as PokemonType);
@@ -107,7 +111,7 @@ export const ConsistencyQuiz: React.FC = () => {
 
     // 安全フォールバック
     console.log("Consistency draft retry limit hit, applying local safety draft.");
-    const fallbackOpp = generateRandomTeamFromLocal(teamSize);
+    const fallbackOpp = generateRandomTeamFromLocal(targetSize);
     setOppTeam(fallbackOpp);
     setCorrectTypes(calculateConsistentTypes(fallbackOpp));
     setLoading(false);
@@ -123,10 +127,6 @@ export const ConsistencyQuiz: React.FC = () => {
     const shuffled = [...LOCAL_POKEMONS].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, size);
   };
-
-  useEffect(() => {
-    setupQuiz();
-  }, [teamSize, isFocusedMode]);
 
   // 回答トグル
   const handleTypeToggle = (type: PokemonType) => {
@@ -184,7 +184,10 @@ export const ConsistencyQuiz: React.FC = () => {
           ).map(btn => (
             <button
               key={btn.size}
-              onClick={() => setTeamSize(btn.size)}
+              onClick={() => {
+                setTeamSize(btn.size);
+                setupQuiz(btn.size, isFocusedMode);
+              }}
               className="tab-btn"
               style={{
                 fontSize: "0.75rem",
@@ -203,7 +206,11 @@ export const ConsistencyQuiz: React.FC = () => {
           <input
             type="checkbox"
             checked={isFocusedMode}
-            onChange={(e) => setIsFocusedMode(e.target.checked)}
+            onChange={(e) => {
+              const nextFocused = e.target.checked;
+              setIsFocusedMode(nextFocused);
+              setupQuiz(teamSize, nextFocused);
+            }}
             style={{ display: "none" }}
           />
           <div className="toggle-bg" style={{ width: "36px", height: "18px" }}>
@@ -549,7 +556,7 @@ export const ConsistencyQuiz: React.FC = () => {
                   回答を決定する
                 </button>
               ) : (
-                <button onClick={setupQuiz} className="btn-primary" style={{ width: "200px", padding: "10px 20px", fontSize: "0.9rem", background: "linear-gradient(135deg, var(--accent-violet), #c084fc)" }}>
+                <button onClick={() => setupQuiz()} className="btn-primary" style={{ width: "200px", padding: "10px 20px", fontSize: "0.9rem", background: "linear-gradient(135deg, var(--accent-violet), #c084fc)" }}>
                   次の問題へ
                 </button>
               )}

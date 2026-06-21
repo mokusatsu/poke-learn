@@ -91,9 +91,14 @@ export const TypeQuiz: React.FC = () => {
   const inferredPairsCount = activeCoveredCount - activeDirectPairsCount;
 
   // 出題タイプ（単一、複合、またはシンプル）の重み付け抽選
-  const generateQuestion = () => {
-    if (category === "max-power") return;
+  const generateQuestion = (
+    targetCategory = category,
+    targetFocusedMode = isFocusedMode,
+    targetUnlockedCount = unlockedTypeCount
+  ) => {
+    if (targetCategory === "max-power") return;
     setIsAnswered(false);
+    setIsCorrect(false);
     setSelectedTypes([]);
     setSelected4xTypes([]);
     setSelected2xTypes([]);
@@ -102,6 +107,7 @@ export const TypeQuiz: React.FC = () => {
     setSelectedRationaleType(null);
     setRationaleImageError(false);
 
+    const targetActiveTypes = PROGRESSIVE_TYPE_ORDER.slice(0, targetUnlockedCount);
 
     // localStorageから重みを取得
     const weightsRaw = localStorage.getItem(WEIGHTS_KEY);
@@ -110,12 +116,12 @@ export const TypeQuiz: React.FC = () => {
     let attempts = 0;
     const maxAttempts = 20;
 
-    if (category.startsWith("simple-")) {
+    if (targetCategory.startsWith("simple-")) {
       // シンプル相性クイズ：現在有効なタイププールからウェイト付きで攻撃・受けのペアを選択
       const candidates: { atk: PokemonType; def: PokemonType; weight: number }[] = [];
       
-      for (const atk of activeTypes) {
-        for (const def of activeTypes) {
+      for (const atk of targetActiveTypes) {
+        for (const def of targetActiveTypes) {
           const key = `${atk}-${def}`;
           let weight = 1.0;
           
@@ -126,7 +132,7 @@ export const TypeQuiz: React.FC = () => {
           }
           
           // 苦手克服モードがONの場合、誤答履歴に基づく重みを追加
-          if (isFocusedMode && weights[key]) {
+          if (targetFocusedMode && weights[key]) {
             weight += weights[key] * 2.0;
           }
           
@@ -135,7 +141,7 @@ export const TypeQuiz: React.FC = () => {
       }
       
       // 重複回避付きでルーレット選択
-      let selectedPair = candidates[0] || { atk: activeTypes[0], def: activeTypes[0] };
+      let selectedPair = candidates[0] || { atk: targetActiveTypes[0], def: targetActiveTypes[0] };
       let questionKey = "";
       
       do {
@@ -149,12 +155,12 @@ export const TypeQuiz: React.FC = () => {
             break;
           }
         }
-        questionKey = `${category}:${selectedPair.atk}-${selectedPair.def}`;
+        questionKey = `${targetCategory}:${selectedPair.atk}-${selectedPair.def}`;
         attempts++;
       } while (
         questionKey === lastQuestionKeyRef.current && 
         attempts < maxAttempts && 
-        activeTypes.length > 1
+        targetActiveTypes.length > 1
       );
 
       lastQuestionKeyRef.current = questionKey;
@@ -162,20 +168,20 @@ export const TypeQuiz: React.FC = () => {
       setSimpleDefType(selectedPair.def);
       setQuestionType(null);
       setQuestionComposite(null);
-    } else if (category.startsWith("single-")) {
-      let selectedType: PokemonType = activeTypes[0];
+    } else if (targetCategory.startsWith("single-")) {
+      let selectedType: PokemonType = targetActiveTypes[0];
       let questionKey = "";
       do {
-        if (isFocusedMode && Object.keys(weights).length > 0) {
+        if (targetFocusedMode && Object.keys(weights).length > 0) {
           // 苦手克服モード: 誤答数の多いタイプほど当選確率を高める (アクティブプール内に制限)
-          const candidates = activeTypes.map(t => ({
+          const candidates = targetActiveTypes.map(t => ({
             type: t,
             weight: (weights[t] || 0) + 1,
           }));
           const totalWeight = candidates.reduce((sum, c) => sum + c.weight, 0);
           let randomNum = Math.random() * totalWeight;
           
-          selectedType = activeTypes[0];
+          selectedType = targetActiveTypes[0];
           for (const c of candidates) {
             randomNum -= c.weight;
             if (randomNum <= 0) {
@@ -184,14 +190,14 @@ export const TypeQuiz: React.FC = () => {
             }
           }
         } else {
-          selectedType = activeTypes[Math.floor(Math.random() * activeTypes.length)];
+          selectedType = targetActiveTypes[Math.floor(Math.random() * targetActiveTypes.length)];
         }
-        questionKey = `${category}:${selectedType}`;
+        questionKey = `${targetCategory}:${selectedType}`;
         attempts++;
       } while (
         questionKey === lastQuestionKeyRef.current && 
         attempts < maxAttempts && 
-        activeTypes.length > 1
+        targetActiveTypes.length > 1
       );
 
       lastQuestionKeyRef.current = questionKey;
@@ -202,20 +208,20 @@ export const TypeQuiz: React.FC = () => {
     } else {
       // 複合タイプ (アクティブプールから2つの異なるタイプを選択)
       const composites: [PokemonType, PokemonType][] = [];
-      for (let i = 0; i < activeTypes.length; i++) {
-        for (let j = i + 1; j < activeTypes.length; j++) {
-          composites.push([activeTypes[i], activeTypes[j]]);
+      for (let i = 0; i < targetActiveTypes.length; i++) {
+        for (let j = i + 1; j < targetActiveTypes.length; j++) {
+          composites.push([targetActiveTypes[i], targetActiveTypes[j]]);
         }
       }
 
-      let selectedComp: [PokemonType, PokemonType] = [activeTypes[0], activeTypes[1] || activeTypes[0]];
+      let selectedComp: [PokemonType, PokemonType] = [targetActiveTypes[0], targetActiveTypes[1] || targetActiveTypes[0]];
       let questionKey = "";
 
       do {
         if (composites.length === 0) {
           // フォールバック
-          selectedComp = [activeTypes[0], activeTypes[1] || activeTypes[0]];
-        } else if (isFocusedMode && Object.keys(weights).length > 0) {
+          selectedComp = [targetActiveTypes[0], targetActiveTypes[1] || targetActiveTypes[0]];
+        } else if (targetFocusedMode && Object.keys(weights).length > 0) {
           const candidates = composites.map(c => {
             const keyName = `${c[0]}-${c[1]}`;
             const failCount = (weights[keyName] || 0) + (weights[c[0]] || 0) + (weights[c[1]] || 0);
@@ -236,12 +242,12 @@ export const TypeQuiz: React.FC = () => {
         } else {
           selectedComp = composites[Math.floor(Math.random() * composites.length)];
         }
-        questionKey = `${category}:${selectedComp[0]}-${selectedComp[1]}`;
+        questionKey = `${targetCategory}:${selectedComp[0]}-${selectedComp[1]}`;
         attempts++;
       } while (
         questionKey === lastQuestionKeyRef.current && 
         attempts < maxAttempts && 
-        (composites.length > 1 || (composites.length === 0 && activeTypes.length > 1))
+        (composites.length > 1 || (composites.length === 0 && targetActiveTypes.length > 1))
       );
 
       lastQuestionKeyRef.current = questionKey;
@@ -252,11 +258,11 @@ export const TypeQuiz: React.FC = () => {
     }
   };
 
-  // カテゴリや出題モード、有効タイプ数が切り替わったら再出題
+  // 有効タイプ数が切り替わったときの処理
   useEffect(() => {
     if (isAnswered) return;
-    generateQuestion();
-  }, [category, isFocusedMode, unlockedTypeCount]);
+    generateQuestion(category, isFocusedMode, unlockedTypeCount);
+  }, [unlockedTypeCount]);
 
   // クイズの正解データを計算 (アクティブなタイププール内に制限)
   const getAnswers = () => {
@@ -289,6 +295,7 @@ export const TypeQuiz: React.FC = () => {
     const safeCount = Math.min(18, Math.max(3, count));
     setUnlockedTypeCount(safeCount);
     setIsAnswered(false);
+    setIsCorrect(false);
     localStorage.setItem("poke-learn-unlocked-types", safeCount.toString());
   };
 
@@ -446,7 +453,11 @@ export const TypeQuiz: React.FC = () => {
         <div className="mobile-only" style={{ flex: 1 }}>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value as QuizCategory)}
+            onChange={(e) => {
+              const nextCat = e.target.value as QuizCategory;
+              setCategory(nextCat);
+              generateQuestion(nextCat, isFocusedMode, unlockedTypeCount);
+            }}
             style={{
               width: "100%",
               backgroundColor: "rgba(255, 255, 255, 0.08)",
@@ -485,7 +496,10 @@ export const TypeQuiz: React.FC = () => {
           ).map(btn => (
             <button
               key={btn.id}
-              onClick={() => setCategory(btn.id)}
+              onClick={() => {
+                setCategory(btn.id);
+                generateQuestion(btn.id, isFocusedMode, unlockedTypeCount);
+              }}
               className="tab-btn"
               style={{
                 fontSize: "0.75rem",
@@ -505,7 +519,11 @@ export const TypeQuiz: React.FC = () => {
             <input
               type="checkbox"
               checked={isFocusedMode}
-              onChange={(e) => setIsFocusedMode(e.target.checked)}
+              onChange={(e) => {
+                const nextFocused = e.target.checked;
+                setIsFocusedMode(nextFocused);
+                generateQuestion(category, nextFocused, unlockedTypeCount);
+              }}
               style={{ display: "none" }}
             />
             <div className="toggle-bg" style={{ width: "36px", height: "18px" }}>
@@ -1116,59 +1134,81 @@ export const TypeQuiz: React.FC = () => {
           <div
             style={{
               width: "100%",
-              padding: "8px 12px",
+              padding: "10px 16px",
               borderRadius: "8px",
               backgroundColor: isCorrect ? "rgba(16, 185, 129, 0.08)" : "rgba(239, 68, 68, 0.08)",
               border: `1px solid ${isCorrect ? "var(--success)" : "var(--error)"}`,
               boxShadow: `0 0 10px ${isCorrect ? "var(--success-glow)" : "var(--error-glow)"}`,
-              textAlign: "center",
               display: "flex",
-              flexDirection: "column",
-              gap: "2px",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "12px",
+              flexWrap: "wrap",
+              textAlign: "left",
+              boxSizing: "border-box"
             }}
           >
-            <span style={{ fontSize: "1.05rem", fontWeight: 800, color: isCorrect ? "var(--success)" : "var(--error)" }}>
-              {isCorrect ? "🎉 正解！お見事です！" : "❌ 不正解です。正解の相性を確認しましょう。"}
-            </span>
+            <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: "1 1 300px" }}>
+              <span style={{ fontSize: "1.05rem", fontWeight: 800, color: isCorrect ? "var(--success)" : "var(--error)" }}>
+                {isCorrect ? "🎉 正解！お見事です！" : "❌ 不正解です。正解の相性を確認しましょう。"}
+              </span>
 
-            {/* 解説 */}
-            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
-              {category.startsWith("simple-") ? (
-                <>
-                  正解の倍率は:{" "}
-                  <strong>
-                    {simpleAtkType && simpleDefType && (() => {
-                      const mult = getEffectiveness(simpleAtkType, [simpleDefType]);
-                      const labelMap = {
-                        double: "ばつぐん (2倍)",
-                        normal: "こうかあり (1倍)",
-                        half: "いまひとつ (0.5倍)",
-                        immune: "無効 (0倍)"
-                      };
-                      return `${mult}x (${labelMap[getCorrectSimpleChoice(mult)]})`;
-                    })()}
-                  </strong>
-                </>
-              ) : category.startsWith("single-") ? (
-                <>
-                  正解のタイプ:{" "}
-                  <strong>
-                    {correctSingleAnswers.map(t => TYPE_DETAILS[t].ja).join(", ") || "該当なし"}
-                  </strong>
-                </>
-              ) : (
-                <>
-                  正解: 【4倍】
-                  <strong>
-                    {correct4x.map(t => TYPE_DETAILS[t].ja).join(", ") || "なし"}
-                  </strong>{" "}
-                  / 【2倍】
-                  <strong>
-                    {correct2x.map(t => TYPE_DETAILS[t].ja).join(", ") || "なし"}
-                  </strong>
-                </>
-              )}
-            </span>
+              {/* 解説 */}
+              <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                {category.startsWith("simple-") ? (
+                  <>
+                    正解の倍率は:{" "}
+                    <strong>
+                      {simpleAtkType && simpleDefType && (() => {
+                        const mult = getEffectiveness(simpleAtkType, [simpleDefType]);
+                        const labelMap = {
+                          double: "ばつぐん (2倍)",
+                          normal: "こうかあり (1倍)",
+                          half: "いまひとつ (0.5倍)",
+                          immune: "無効 (0倍)"
+                        };
+                        return `${mult}x (${labelMap[getCorrectSimpleChoice(mult)]})`;
+                      })()}
+                    </strong>
+                  </>
+                ) : category.startsWith("single-") ? (
+                  <>
+                    正解のタイプ:{" "}
+                    <strong>
+                      {correctSingleAnswers.map(t => TYPE_DETAILS[t].ja).join(", ") || "該当なし"}
+                    </strong>
+                  </>
+                ) : (
+                  <>
+                    正解: 【4倍】
+                    <strong>
+                      {correct4x.map(t => TYPE_DETAILS[t].ja).join(", ") || "なし"}
+                    </strong>{" "}
+                    / 【2倍】
+                    <strong>
+                      {correct2x.map(t => TYPE_DETAILS[t].ja).join(", ") || "なし"}
+                    </strong>
+                  </>
+                )}
+              </span>
+            </div>
+
+            {/* 次の問題へボタン */}
+            <button 
+              onClick={() => generateQuestion()} 
+              className="btn-primary animate-pop-in" 
+              style={{ 
+                width: "140px", 
+                padding: "8px 16px", 
+                fontSize: "0.85rem", 
+                background: "linear-gradient(135deg, var(--accent-violet), #c084fc)",
+                flexShrink: 0,
+                whiteSpace: "nowrap",
+                margin: "4px 0"
+              }}
+            >
+              次の問題へ
+            </button>
           </div>
         )}
 
@@ -1298,21 +1338,15 @@ export const TypeQuiz: React.FC = () => {
           );
         })()}
 
-        {/* コントロールボタン (Submit and Next in same slot) */}
+        {/* コントロールボタン */}
         <div style={{ display: "flex", gap: "12px", width: "100%", justifyContent: "center" }}>
-          {!isAnswered ? (
-            !category.startsWith("simple-") && (
-              <button 
-                onClick={() => handleSubmit()} 
-                className="btn-primary" 
-                style={{ width: "200px", padding: "10px 20px", fontSize: "0.9rem" }}
-              >
-                回答を決定する
-              </button>
-            )
-          ) : (
-            <button onClick={generateQuestion} className="btn-primary" style={{ width: "200px", padding: "10px 20px", fontSize: "0.9rem", background: "linear-gradient(135deg, var(--accent-violet), #c084fc)" }}>
-              次の問題へ
+          {!isAnswered && !category.startsWith("simple-") && (
+            <button 
+              onClick={() => handleSubmit()} 
+              className="btn-primary" 
+              style={{ width: "200px", padding: "10px 20px", fontSize: "0.9rem" }}
+            >
+              回答を決定する
             </button>
           )}
         </div>
