@@ -93,7 +93,7 @@ function App() {
                 e.currentTarget.style.boxShadow = "0 0 4px var(--accent-cyan-glow)";
               }}
             >
-              2026-06-15
+              2026-06-21
             </span>
           </div>
           {!isMobile && !isShortScreen && (

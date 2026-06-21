@@ -5,6 +5,7 @@ import { generateRandomTeam } from "../utils/pokemonApi";
 import { getEffectiveness, TYPE_LIST, TYPE_DETAILS } from "../utils/typeMatrix";
 import type { PokemonType } from "../utils/typeMatrix";
 import { PokemonCard } from "./PokemonCard";
+import { typeMatchupRationales } from "../data/typeMatchupRationales";
 
 type ConsistencyQuizSize = 3 | 6;
 
@@ -15,6 +16,11 @@ export const ConsistencyQuiz: React.FC = () => {
   const [isFocusedMode, setIsFocusedMode] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
   const [isShortScreen, setIsShortScreen] = useState<boolean>(window.innerHeight < 800 || window.innerWidth < 768);
+
+  // 考察表示用ステート
+  const [selectedRationaleAtk, setSelectedRationaleAtk] = useState<PokemonType | null>(null);
+  const [selectedRationaleDef, setSelectedRationaleDef] = useState<PokemonType | null>(null);
+  const [rationaleImageError, setRationaleImageError] = useState<boolean>(false);
 
   // リフレッシュやリサイズなどのハンドラー
   useEffect(() => {
@@ -49,10 +55,17 @@ export const ConsistencyQuiz: React.FC = () => {
   };
 
   // クイズの初期化（解が一貫するまでループする事前検証付き）
-  const setupQuiz = async () => {
+  const setupQuiz = async (
+    targetSize = teamSize,
+    targetFocusedMode = isFocusedMode
+  ) => {
     setLoading(true);
     setIsAnswered(false);
+    setIsCorrect(false);
     setSelectedTypes([]);
+    setSelectedRationaleAtk(null);
+    setSelectedRationaleDef(null);
+    setRationaleImageError(false);
 
     // 苦手克服データ取得
     const weightsRaw = localStorage.getItem(CONSISTENCY_WEIGHTS_KEY);
@@ -62,10 +75,10 @@ export const ConsistencyQuiz: React.FC = () => {
     while (attempts < 50) {
       attempts++;
       // 動的フェッチ
-      let draft = await generateRandomTeam(teamSize);
+      let draft = await generateRandomTeam(targetSize);
 
       // 苦手克服モード: 誤答した実績のあるタイプを相手チームに配置しやすくする
-      if (isFocusedMode && Object.keys(weights).length > 0) {
+      if (targetFocusedMode && Object.keys(weights).length > 0) {
         const sortedFailedTypes = Object.entries(weights)
           .sort((a, b) => b[1] - a[1])
           .map(entry => entry[0] as PokemonType);
@@ -98,7 +111,7 @@ export const ConsistencyQuiz: React.FC = () => {
 
     // 安全フォールバック
     console.log("Consistency draft retry limit hit, applying local safety draft.");
-    const fallbackOpp = generateRandomTeamFromLocal(teamSize);
+    const fallbackOpp = generateRandomTeamFromLocal(targetSize);
     setOppTeam(fallbackOpp);
     setCorrectTypes(calculateConsistentTypes(fallbackOpp));
     setLoading(false);
@@ -114,10 +127,6 @@ export const ConsistencyQuiz: React.FC = () => {
     const shuffled = [...LOCAL_POKEMONS].sort(() => 0.5 - Math.random());
     return shuffled.slice(0, size);
   };
-
-  useEffect(() => {
-    setupQuiz();
-  }, [teamSize, isFocusedMode]);
 
   // 回答トグル
   const handleTypeToggle = (type: PokemonType) => {
@@ -175,7 +184,10 @@ export const ConsistencyQuiz: React.FC = () => {
           ).map(btn => (
             <button
               key={btn.size}
-              onClick={() => setTeamSize(btn.size)}
+              onClick={() => {
+                setTeamSize(btn.size);
+                setupQuiz(btn.size, isFocusedMode);
+              }}
               className="tab-btn"
               style={{
                 fontSize: "0.75rem",
@@ -194,7 +206,11 @@ export const ConsistencyQuiz: React.FC = () => {
           <input
             type="checkbox"
             checked={isFocusedMode}
-            onChange={(e) => setIsFocusedMode(e.target.checked)}
+            onChange={(e) => {
+              const nextFocused = e.target.checked;
+              setIsFocusedMode(nextFocused);
+              setupQuiz(teamSize, nextFocused);
+            }}
             style={{ display: "none" }}
           />
           <div className="toggle-bg" style={{ width: "36px", height: "18px" }}>
@@ -243,7 +259,7 @@ export const ConsistencyQuiz: React.FC = () => {
           {/* 相手メンバー表示 */}
           <div style={{ display: "flex", flexDirection: "column", gap: "4px", flexShrink: 0 }}>
             <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--error)", letterSpacing: "0.05em", paddingLeft: "4px" }}>
-              🔴 分析対象：相手パーティー ({teamSize}匹)
+              🔴 分析対象：相手パーティー ({teamSize}匹) {isAnswered && !isCorrect && " (クリックして苦手タイプとの覚え方を表示)"}
             </span>
             <div style={{
               display: "flex",
@@ -256,15 +272,38 @@ export const ConsistencyQuiz: React.FC = () => {
               margin: "0 auto",
               justifyContent: (teamSize === 3 && !isMobile) ? "center" : "flex-start"
             }}>
-              {oppTeam.map((poke, index) => (
-                <PokemonCard
-                  key={`opp-const-${index}`}
-                  pokemon={poke}
-                  size={teamSize === 3 ? (isMobile || isShortScreen ? "sm" : "md") : "sm"}
-                  showSprite={true}
-                  badgeSize="sm"
-                />
-              ))}
+              {oppTeam.map((poke, index) => {
+                const isSelected = isAnswered && !isCorrect && poke.types.some(t => t === selectedRationaleDef);
+                
+                return (
+                  <PokemonCard
+                    key={`opp-const-${index}`}
+                    pokemon={poke}
+                    size={teamSize === 3 ? (isMobile || isShortScreen ? "sm" : "md") : "sm"}
+                    showSprite={true}
+                    badgeSize="sm"
+                    clickable={isAnswered && !isCorrect}
+                    onClick={() => {
+                      if (isAnswered && !isCorrect) {
+                        // プレイヤーが選択して失敗したタイプがある場合はそのタイプを、無ければノーマルなどをデフォルトに
+                        const failedTypes = selectedTypes.filter(t => !correctTypes.includes(t));
+                        const atkType = failedTypes.length > 0 
+                          ? failedTypes[0] 
+                          : TYPE_LIST.find(t => getEffectiveness(t, poke.types) < 1.0) || "normal";
+                        
+                        setSelectedRationaleAtk(atkType);
+                        // 防御タイプはポケモンのタイプ1またはタイプ2のうち、半減以下にした方を代表にする
+                        const defType = getEffectiveness(atkType, [poke.types[0]]) < 1.0 
+                          ? poke.types[0] 
+                          : (poke.types[1] || poke.types[0]);
+                        setSelectedRationaleDef(defType);
+                        setRationaleImageError(false);
+                      }
+                    }}
+                    selected={isSelected}
+                  />
+                );
+              })}
             </div>
           </div>
 
@@ -387,8 +426,130 @@ export const ConsistencyQuiz: React.FC = () => {
                     );
                   })}
                 </div>
+
+                {/* 防がれた要因の分析リスト */}
+                {!isCorrect && (
+                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "4px", textAlign: "left", padding: isMobile ? "4px 8px" : "6px 12px", background: "rgba(0,0,0,0.15)", borderRadius: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
+                    <strong>⚠️ 防がれた要因の分析 (クリックで覚え方を表示):</strong>
+                    {(() => {
+                      const failedTypes = selectedTypes.filter(t => !correctTypes.includes(t));
+                      const typesToAnalyze = failedTypes.length > 0 ? failedTypes : TYPE_LIST.filter(t => !correctTypes.includes(t));
+                      
+                      const blockReasons: { atk: PokemonType; poke: PokemonData; eff: number }[] = [];
+                      
+                      typesToAnalyze.forEach(atk => {
+                        oppTeam.forEach(o => {
+                          const eff = getEffectiveness(atk, o.types);
+                          if (eff < 1.0) {
+                            blockReasons.push({ atk, poke: o, eff });
+                          }
+                        });
+                      });
+
+                      const targetReasons = failedTypes.length > 0 
+                        ? blockReasons.filter(r => failedTypes.includes(r.atk))
+                        : blockReasons;
+
+                      return targetReasons.slice(0, 6).map((reason, idx) => {
+                        const key = `${reason.atk}-${reason.poke.nameJa}-${idx}`;
+                        const defType = getEffectiveness(reason.atk, [reason.poke.types[0]]) < 1.0 
+                          ? reason.poke.types[0] 
+                          : (reason.poke.types[1] || reason.poke.types[0]);
+                        const isSelected = selectedRationaleAtk === reason.atk && selectedRationaleDef === defType;
+                        
+                        return (
+                          <div 
+                            key={key} 
+                            onClick={() => {
+                              setSelectedRationaleAtk(reason.atk);
+                              setSelectedRationaleDef(defType);
+                              setRationaleImageError(false);
+                            }}
+                            style={{ 
+                              color: "var(--text-primary)", 
+                              cursor: "pointer", 
+                              padding: "4px 8px", 
+                              borderRadius: "4px", 
+                              backgroundColor: isSelected ? "rgba(6, 182, 212, 0.15)" : "transparent",
+                              border: isSelected ? "1px solid var(--accent-cyan)" : "1px solid transparent",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              marginTop: "2px",
+                              transition: "all 0.15s ease"
+                            }}
+                            title="クリックして相性の覚え方を表示"
+                          >
+                            <span>
+                              ・<strong>{TYPE_DETAILS[reason.atk].ja}</strong> は <strong>{reason.poke.nameJa}</strong> に {reason.eff}x で防がれました。
+                            </span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--accent-cyan)" }}>覚え方表示 💡</span>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                )}
               </div>
             )}
+
+            {/* 相性の覚え方アコーディオン */}
+            {isAnswered && !isCorrect && selectedRationaleAtk && selectedRationaleDef && (() => {
+              const rationaleData = typeMatchupRationales[selectedRationaleAtk]?.[selectedRationaleDef];
+              
+              return (
+                <div className="glass-panel animate-pop-in" style={{
+                  marginTop: "6px",
+                  padding: "12px",
+                  border: "1px solid var(--border-glass-active)",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "10px",
+                  boxSizing: "border-box",
+                  width: "100%"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid rgba(255, 255, 255, 0.08)", paddingBottom: "6px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span style={{ fontSize: "1rem" }}>💡</span>
+                      <strong style={{ fontSize: "0.85rem", color: "var(--accent-cyan)" }}>相性の覚え方 ({TYPE_DETAILS[selectedRationaleAtk].ja} → {TYPE_DETAILS[selectedRationaleDef].ja})</strong>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedRationaleAtk(null);
+                        setSelectedRationaleDef(null);
+                      }}
+                      className="tab-btn"
+                      style={{ fontSize: "0.7rem", padding: "1px 6px" }}
+                    >
+                      閉じる
+                    </button>
+                  </div>
+
+                  <div className="rationale-container">
+                    {/* 考察テキスト */}
+                    <div style={{ flex: 1, minWidth: "180px" }}>
+                      <p style={{ fontSize: "0.75rem", lineHeight: "1.45", margin: 0, color: "var(--text-primary)" }}>
+                        {rationaleData?.rationale || "この相性に関する詳細な考察データはありません。"}
+                      </p>
+                    </div>
+
+                    {/* 画像 */}
+                    {!rationaleImageError && (
+                      <div className="rationale-image-container" style={{ flex: "0 0 140px", maxWidth: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", backgroundColor: "rgba(0,0,0,0.2)" }}>
+                        <img
+                          src={`/images/matchup-rationales/${selectedRationaleAtk}-${selectedRationaleDef}.png`}
+                          alt={`${TYPE_DETAILS[selectedRationaleAtk].ja} から ${TYPE_DETAILS[selectedRationaleDef].ja} への相性`}
+                          onError={(e) => {
+                            (e.target as HTMLElement).parentElement!.style.display = "none";
+                          }}
+                          style={{ width: "100%", height: "auto", display: "block" }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* コントロール */}
             <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginTop: "4px", flexShrink: 0 }}>
@@ -397,7 +558,7 @@ export const ConsistencyQuiz: React.FC = () => {
                   回答を決定する
                 </button>
               ) : (
-                <button onClick={setupQuiz} className="btn-primary" style={{ width: "200px", padding: "10px 20px", fontSize: "0.9rem", background: "linear-gradient(135deg, var(--accent-violet), #c084fc)" }}>
+                <button onClick={() => setupQuiz()} className="btn-primary" style={{ width: "200px", padding: "10px 20px", fontSize: "0.9rem", background: "linear-gradient(135deg, var(--accent-violet), #c084fc)" }}>
                   次の問題へ
                 </button>
               )}

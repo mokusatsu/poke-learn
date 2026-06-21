@@ -164,6 +164,7 @@ export const SelectionQuiz: React.FC = () => {
     const requestId = ++requestCounterRef.current;
     setLoading(true);
     setIsAnswered(false);
+    setIsCorrect(false);
     setSelectedIndices([]);
 
     // 苦手克服データ取得
@@ -580,7 +581,12 @@ export const SelectionQuiz: React.FC = () => {
         <div className="mobile-only" style={{ flex: 1 }}>
           <select
             value={category}
-            onChange={(e) => setCategory(e.target.value as SelectionQuizCategory)}
+            onChange={(e) => {
+              setIsAnswered(false);
+              setIsCorrect(false);
+              setSelectedIndices([]);
+              setCategory(e.target.value as SelectionQuizCategory);
+            }}
             style={{
               width: "100%",
               backgroundColor: "rgba(255, 255, 255, 0.08)",
@@ -613,7 +619,12 @@ export const SelectionQuiz: React.FC = () => {
           ).map(btn => (
             <button
               key={btn.id}
-              onClick={() => setCategory(btn.id)}
+              onClick={() => {
+                setIsAnswered(false);
+                setIsCorrect(false);
+                setSelectedIndices([]);
+                setCategory(btn.id);
+              }}
               className="tab-btn"
               style={{
                 fontSize: "0.75rem",
@@ -632,7 +643,12 @@ export const SelectionQuiz: React.FC = () => {
           <input
             type="checkbox"
             checked={isFocusedMode}
-            onChange={(e) => setIsFocusedMode(e.target.checked)}
+            onChange={(e) => {
+              setIsAnswered(false);
+              setIsCorrect(false);
+              setSelectedIndices([]);
+              setIsFocusedMode(e.target.checked);
+            }}
             style={{ display: "none" }}
           />
           <div className="toggle-bg" style={{ width: "36px", height: "18px" }}>
@@ -812,99 +828,121 @@ export const SelectionQuiz: React.FC = () => {
             <div
               className={`glass-panel ${isCorrect ? "animate-pop-in" : "animate-shake"}`}
               style={{
-                padding: isShortScreen ? "4px 8px" : "8px 12px",
+                padding: isShortScreen ? "6px 12px" : "10px 16px",
                 backgroundColor: isCorrect ? "rgba(16, 185, 129, 0.08)" : "rgba(239, 68, 68, 0.08)",
                 border: `1px solid ${isCorrect ? "var(--success)" : "var(--error)"}`,
                 boxShadow: `0 0 10px ${isCorrect ? "var(--success-glow)" : "var(--error-glow)"}`,
                 display: "flex",
-                flexDirection: "column",
-                gap: "2px",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "12px",
+                flexWrap: "wrap",
+                boxSizing: "border-box",
                 flexShrink: 1,
                 minHeight: isShortScreen ? "55px" : "90px"
               }}
             >
-              <h3 style={{ fontSize: "1rem", fontWeight: 800, color: isCorrect ? "var(--success)" : "var(--error)", textAlign: "center" }}>
-                {isCorrect ? "🎉 見事な選出です！大正解！" : "❌ 選出ミスです！相性関係を再分析しましょう。"}
-              </h3>
-              
-              <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "2px" }}>
-                <strong>💡 選出解説:</strong>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px", flex: "1 1 300px", textAlign: "left" }}>
+                <h3 style={{ fontSize: "1rem", fontWeight: 800, color: isCorrect ? "var(--success)" : "var(--error)", margin: 0 }}>
+                  {isCorrect ? "🎉 見事な選出です！大正解！" : "❌ 選出ミスです！相性関係を再分析しましょう。"}
+                </h3>
                 
-                {category === "offense-4x" && (
-                  <span>
-                    各味方ポケモンのタイプ一致攻撃で4倍弱点を突ける相手:
-                    <ul style={{ paddingLeft: "15px", marginTop: "2px" }}>
-                      {userTeam.map((p, idx) => {
-                        const targets = oppTeam.filter(opp =>
-                          p.types.some(uType => getEffectiveness(uType, opp.types) === 4.0)
-                        );
-                        return (
-                          <li key={idx} style={{ color: targets.length > 0 ? "var(--success)" : "var(--text-muted)", fontSize: "0.75rem" }}>
-                            <strong>{p.nameJa}</strong>: {targets.length > 0 ? `${targets.map(t => t.nameJa).join(", ")} に4倍` : "突ける相手なし"}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </span>
-                )}
+                <div style={{ fontSize: "0.8rem", color: "var(--text-secondary)", display: "flex", flexDirection: "column", gap: "2px" }}>
+                  <strong>💡 選出解説:</strong>
+                  
+                  {category === "offense-4x" && (
+                    <span>
+                      各味方ポケモンのタイプ一致攻撃で4倍弱点を突ける相手:
+                      <ul style={{ paddingLeft: "15px", marginTop: "2px" }}>
+                        {userTeam.map((p, idx) => {
+                          const targets = oppTeam.filter(opp =>
+                            p.types.some(uType => getEffectiveness(uType, opp.types) === 4.0)
+                          );
+                          return (
+                            <li key={idx} style={{ color: targets.length > 0 ? "var(--success)" : "var(--text-muted)", fontSize: "0.75rem" }}>
+                              <strong>{p.nameJa}</strong>: {targets.length > 0 ? `${targets.map(t => t.nameJa).join(", ")} に4倍` : "突ける相手なし"}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </span>
+                  )}
 
-                {category === "defense-4x" && (
-                  <span>
-                    各味方ポケモンの4倍被弾チェック:
-                    <ul style={{ paddingLeft: "15px", marginTop: "2px" }}>
-                      {userTeam.map((p, idx) => {
-                        const threads = oppTeam.filter(opp =>
-                          opp.types.some(oppType => getEffectiveness(oppType, p.types) === 4.0)
-                        );
-                        const isSafe = threads.length === 0;
-                        return (
-                          <li key={idx} style={{ color: isSafe ? "var(--success)" : "var(--error)", fontSize: "0.75rem" }}>
-                            <strong>{p.nameJa}</strong>: {isSafe ? "安全" : `相手の ${threads.map(t => t.nameJa).join(", ")} から4倍`}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </span>
-                )}
+                  {category === "defense-4x" && (
+                    <span>
+                      各味方ポケモンの4倍被弾チェック:
+                      <ul style={{ paddingLeft: "15px", marginTop: "2px" }}>
+                        {userTeam.map((p, idx) => {
+                          const threads = oppTeam.filter(opp =>
+                            opp.types.some(oppType => getEffectiveness(oppType, p.types) === 4.0)
+                          );
+                          const isSafe = threads.length === 0;
+                          return (
+                            <li key={idx} style={{ color: isSafe ? "var(--success)" : "var(--error)", fontSize: "0.75rem" }}>
+                              <strong>{p.nameJa}</strong>: {isSafe ? "安全" : `相手の ${threads.map(t => t.nameJa).join(", ")} から4倍`}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </span>
+                  )}
 
-                {category === "offense-all" && (
-                  <span>
-                    正解の選出パターン一覧:
-                    <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
-                      {correctAnswersList.map((comb, cIdx) => (
-                        <div key={cIdx} style={{ background: "rgba(255,255,255,0.05)", padding: "2px 8px", borderRadius: "6px", border: "1px solid var(--border-glass)", fontSize: "0.75rem", color: "var(--success)" }}>
-                          {comb.map(idx => userTeam[idx].nameJa).join(" ＆ ")}
-                        </div>
-                      ))}
-                    </div>
-                  </span>
-                )}
+                  {category === "offense-all" && (
+                    <span>
+                      正解の選出パターン一覧:
+                      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "2px" }}>
+                        {correctAnswersList.map((comb, cIdx) => (
+                          <div key={cIdx} style={{ background: "rgba(255,255,255,0.05)", padding: "2px 8px", borderRadius: "6px", border: "1px solid var(--border-glass)", fontSize: "0.75rem", color: "var(--success)" }}>
+                            {comb.map(idx => userTeam[idx].nameJa).join(" ＆ ")}
+                          </div>
+                        ))}
+                      </div>
+                    </span>
+                  )}
 
-                {category === "defense-min-2x" && (
-                  <span>
-                    被弾状況:
-                    <ul style={{ paddingLeft: "15px", marginTop: "2px" }}>
-                      {userTeam.map((p, idx) => {
-                        const weakOpponents = oppTeam.filter(opp =>
-                          opp.types.some(oppType => getEffectiveness(oppType, p.types) === 2.0)
-                        );
-                        return (
-                          <li key={idx} style={{ color: "var(--text-secondary)", fontSize: "0.75rem" }}>
-                            <strong>{p.nameJa}</strong>: {weakOpponents.length > 0 ? `弱点2倍被弾あり (${weakOpponents.map(o => o.nameJa).join(", ")})` : "被弾なし"}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </span>
-                )}
+                  {category === "defense-min-2x" && (
+                    <span>
+                      被弾状況:
+                      <ul style={{ paddingLeft: "15px", marginTop: "2px" }}>
+                        {userTeam.map((p, idx) => {
+                          const weakOpponents = oppTeam.filter(opp =>
+                            opp.types.some(oppType => getEffectiveness(oppType, p.types) === 2.0)
+                          );
+                          return (
+                            <li key={idx} style={{ color: "var(--text-secondary)", fontSize: "0.75rem" }}>
+                              <strong>{p.nameJa}</strong>: {weakOpponents.length > 0 ? `弱点2倍被弾あり (${weakOpponents.map(o => o.nameJa).join(", ")})` : "被弾なし"}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </span>
+                  )}
 
+                </div>
               </div>
+
+              {/* 次の対戦カードへボタン */}
+              <button
+                onClick={setupQuiz}
+                className="btn-primary animate-pop-in"
+                style={{
+                  width: "140px",
+                  padding: "8px 16px",
+                  fontSize: "0.85rem",
+                  background: "linear-gradient(135deg, var(--accent-violet), #c084fc)",
+                  flexShrink: 0,
+                  whiteSpace: "nowrap",
+                  margin: "4px 0"
+                }}
+              >
+                次の対戦カードへ
+              </button>
             </div>
           )}
 
-          {/* 送信・次へボタン */}
-          <div style={{ display: "flex", gap: "12px", width: "100%", justifyContent: "center", marginTop: "4px", flexShrink: 0 }}>
-            {!isAnswered ? (
+          {/* 送信ボタン（未回答時のみ表示） */}
+          {!isAnswered && (
+            <div style={{ display: "flex", gap: "12px", width: "100%", justifyContent: "center", marginTop: "4px", flexShrink: 0 }}>
               <button
                 onClick={handleSubmit}
                 disabled={selectedIndices.length !== 3}
@@ -919,21 +957,8 @@ export const SelectionQuiz: React.FC = () => {
               >
                 選出を確定してバトル！
               </button>
-            ) : (
-              <button
-                onClick={setupQuiz}
-                className="btn-primary"
-                style={{
-                  width: "220px",
-                  padding: "10px 20px",
-                  fontSize: "0.9rem",
-                  background: "linear-gradient(135deg, var(--accent-violet), #c084fc)"
-                }}
-              >
-                次の対戦カードへ
-              </button>
-            )}
-          </div>
+            </div>
+          )}
 
         </div>
       )}

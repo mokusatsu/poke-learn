@@ -140,13 +140,33 @@ export const Colophon: React.FC = () => {
                 backgroundColor: "var(--accent-violet)",
                 boxShadow: "0 0 8px var(--accent-violet)"
               }} />
-              <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#ffffff" }}>2026-06-15</span>
+              <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "#ffffff" }}>2026-06-21</span>
               <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)", lineHeight: 1.4 }}>
-                スマホレイアウト調整、文言調整
+                Feature: 段階的学習ステップアップ条件、タイプ相性説明<br />
+                Bugfix: 苦手分析マトリクスの表示不具合
               </span>
             </div>
 
             {/* タイムラインアイテム 2 */}
+            <div style={{ position: "relative", paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "4px" }}>
+              {/* ドット */}
+              <div style={{
+                position: "absolute",
+                left: "1px",
+                top: "6px",
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                backgroundColor: "rgba(139, 92, 246, 0.5)",
+                boxShadow: "0 0 4px rgba(139, 92, 246, 0.3)"
+              }} />
+              <span style={{ fontSize: "0.85rem", fontWeight: 800, color: "var(--text-secondary)" }}>2026-06-15</span>
+              <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.4 }}>
+                スマホレイアウト調整、文言調整
+              </span>
+            </div>
+
+            {/* タイムラインアイテム 3 */}
             <div style={{ position: "relative", paddingLeft: "20px", display: "flex", flexDirection: "column", gap: "4px" }}>
               {/* ドット */}
               <div style={{

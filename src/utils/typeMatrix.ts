@@ -281,3 +281,183 @@ export function getOffensiveSTABMatchups(
   }
   return maxMult;
 }
+
+/**
+ * 2つのタイプ間の相性が非対称（一方が非等倍で、もう一方が等倍）かどうかを判定
+ */
+export function isAsymmetricPair(typeA: PokemonType, typeB: PokemonType): boolean {
+  if (typeA === typeB) return false; // 同一タイプ同士は対称とする
+  const ab = getEffectiveness(typeA, [typeB]);
+  const ba = getEffectiveness(typeB, [typeA]);
+  // 一方が等倍(1.0)で、もう一方が非等倍である場合に「非対称」とみなす
+  return (ab === 1.0 && ba !== 1.0) || (ab !== 1.0 && ba === 1.0);
+}
+
+export interface CoverageResult {
+  inferredPairs: string[];
+  coveragePercent: number;
+  totalPossiblePairs: number;
+  activeCoveredCount: number;
+  characteristicCount: number;
+  characteristicCoveredCount: number;
+  asymmetricCount: number;
+  asymmetricCoveredCount: number;
+  isComplete: boolean;
+}
+
+/**
+ * 段階的学習のアクティブタイププールにおいて、対称性・すくみ・等倍自動カバーを考慮した
+ * 実効的なカバー情報を計算する
+ */
+export function computeInferredCoverage(
+  directPairs: string[],
+  activeTypes: PokemonType[]
+): CoverageResult {
+  const activeSet = new Set(activeTypes);
+  
+  // 1. アクティブプール内での直接カバーされたペアを抽出
+  const coveredSet = new Set<string>(
+    directPairs.filter(p => {
+      const [atk, def] = p.split("-") as PokemonType[];
+      return activeSet.has(atk) && activeSet.has(def);
+    })
+  );
+
+  // 2. 特徴的相性（非等倍）のペア、および非対称なペアをリストアップ
+  const charMatches = new Set<string>();
+  const asymmetricMatches = new Set<string>();
+
+  for (const atk of activeTypes) {
+    for (const def of activeTypes) {
+      const pairKey = `${atk}-${def}`;
+      
+      // 特徴的相性（非等倍）
+      if (getEffectiveness(atk, [def]) !== 1.0) {
+        charMatches.add(pairKey);
+      }
+      
+      // 非対称ペア
+      if (isAsymmetricPair(atk, def)) {
+        asymmetricMatches.add(pairKey);
+      }
+    }
+  }
+
+  // 3. 不動点計算による知識の伝播
+  let changed = true;
+  while (changed) {
+    changed = false;
+
+    // --- ルール1: 対称性 (Symmetry) ---
+    // (u, v) が特徴的かつカバーされており、(v, u) も特徴的かつ対称な（同じ倍率の）場合、
+    // (v, u) もカバーされたとみなす
+    for (const pair of charMatches) {
+      if (coveredSet.has(pair)) continue;
+
+      const [u, v] = pair.split("-") as PokemonType[];
+      const reversePair = `${v}-${u}`;
+      
+      if (
+        charMatches.has(reversePair) && 
+        coveredSet.has(reversePair) && 
+        !isAsymmetricPair(u, v)
+      ) {
+        coveredSet.add(pair);
+        changed = true;
+      }
+    }
+
+    // --- ルール2: 3すくみ循環 (Cycle / Triplet) ---
+    // 3つの異なるタイプ u, v, w において、u->v, v->w, w->u がすべて特徴的相性であるとき、
+    // 2つがカバーされていれば、残りの1つもカバーされたとみなす
+    // ただし、非対称なペアは推論カバーで追加されないようにする
+    const len = activeTypes.length;
+    for (let i = 0; i < len; i++) {
+      for (let j = 0; j < len; j++) {
+        if (i === j) continue;
+        for (let k = 0; k < len; k++) {
+          if (i === k || j === k) continue;
+
+          const u = activeTypes[i];
+          const v = activeTypes[j];
+          const w = activeTypes[k];
+
+          const p1 = `${u}-${v}`;
+          const p2 = `${v}-${w}`;
+          const p3 = `${w}-${u}`;
+
+          if (charMatches.has(p1) && charMatches.has(p2) && charMatches.has(p3)) {
+            if (coveredSet.has(p1) && coveredSet.has(p2) && !coveredSet.has(p3) && !asymmetricMatches.has(p3)) {
+              coveredSet.add(p3);
+              changed = true;
+            }
+            if (coveredSet.has(p2) && coveredSet.has(p3) && !coveredSet.has(p1) && !asymmetricMatches.has(p1)) {
+              coveredSet.add(p1);
+              changed = true;
+            }
+            if (coveredSet.has(p3) && coveredSet.has(p1) && !coveredSet.has(p2) && !asymmetricMatches.has(p2)) {
+              coveredSet.add(p2);
+              changed = true;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 4. 等倍自動カバーの適用判定
+  // 特徴的相性がすべてカバーされ、かつすべての非対称ペア（等倍を含む）も直接カバーされているか？
+  let allCharCovered = true;
+  let charCoveredCount = 0;
+  for (const pair of charMatches) {
+    if (coveredSet.has(pair)) {
+      charCoveredCount++;
+    } else {
+      allCharCovered = false;
+    }
+  }
+
+  let allAsymmetricCovered = true;
+  let asymmetricCoveredCount = 0;
+  for (const pair of asymmetricMatches) {
+    if (coveredSet.has(pair)) {
+      asymmetricCoveredCount++;
+    } else {
+      allAsymmetricCovered = false;
+    }
+  }
+
+  const totalPossiblePairs = activeTypes.length * activeTypes.length;
+
+  if (allCharCovered && allAsymmetricCovered) {
+    for (const atk of activeTypes) {
+      for (const def of activeTypes) {
+        coveredSet.add(`${atk}-${def}`);
+      }
+    }
+  }
+
+  const activeCoveredCount = coveredSet.size;
+  const coveragePercent = Math.round((activeCoveredCount / totalPossiblePairs) * 100);
+
+  return {
+    inferredPairs: Array.from(coveredSet),
+    coveragePercent,
+    totalPossiblePairs,
+    activeCoveredCount,
+    characteristicCount: charMatches.size,
+    characteristicCoveredCount: charCoveredCount,
+    asymmetricCount: asymmetricMatches.size,
+    asymmetricCoveredCount: asymmetricCoveredCount,
+    isComplete: activeCoveredCount === totalPossiblePairs
+  };
+}
+
+export const PROGRESSIVE_TYPE_ORDER: PokemonType[] = [
+  "fire", "water", "grass",      // 御三家
+  "normal", "flying", "bug",      // 初盤・基本タイプ
+  "electric", "ground", "rock",   // 元素・物理
+  "poison", "fighting", "psychic",// 中堅難易度
+  "ice", "ghost", "dragon",       // 後半・特殊
+  "dark", "steel", "fairy"        // 現代・複合向け
+];
