@@ -353,3 +353,17 @@ input:checked + .toggle-bg .toggle-circle {
     display: none !important;
   }
 }
+
+/* 解説・相性の覚え方表示用のレスポンシブフレックスコンテナ */
+.rationale-container {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+@media (max-width: 767px) {
+  .rationale-container {
+    flex-direction: column-reverse;
+  }
+}

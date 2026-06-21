@@ -525,7 +525,7 @@ export const ConsistencyQuiz: React.FC = () => {
                     </button>
                   </div>
 
-                  <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", flexWrap: "wrap-reverse" }}>
+                  <div className="rationale-container">
                     {!rationaleImageError && (
                       <div className="rationale-image-container" style={{ flex: "0 0 140px", maxWidth: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", backgroundColor: "rgba(0,0,0,0.2)" }}>
                         <img

@@ -1220,7 +1220,7 @@ export const TypeQuiz: React.FC = () => {
               <strong style={{ fontSize: "0.85rem", color: "var(--accent-cyan)" }}>相性の覚え方</strong>
             </div>
             
-            <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", flexWrap: "wrap-reverse" }}>
+            <div className="rationale-container">
               {/* 画像エリア */}
               {!rationaleImageError && (
                 <div style={{ flex: "0 0 160px", maxWidth: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", backgroundColor: "rgba(0,0,0,0.2)" }}>
@@ -1313,7 +1313,7 @@ export const TypeQuiz: React.FC = () => {
                       </span>
                     </div>
 
-                    <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", flexWrap: "wrap-reverse" }}>
+                    <div className="rationale-container">
                       <div className="rationale-image-container" style={{ flex: "0 0 160px", maxWidth: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid rgba(255, 255, 255, 0.1)", backgroundColor: "rgba(0,0,0,0.2)" }}>
                         <img
                           src={`/images/matchup-rationales/${attacker}-${defender}.png`}
