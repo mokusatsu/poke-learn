@@ -1,5 +1,6 @@
 // server.ts
 // Deno API Server for poke-learn accounts using Deno KV
+import { serveDir } from "jsr:@std/http/file-server";
 
 const ONE_YEAR_MS = 1000 * 60 * 60 * 24 * 365; // 1年（ミリ秒）
 const PORT = 8000;
@@ -244,8 +245,23 @@ async function handler(req: Request): Promise<Response> {
       });
     }
 
-    // パス不一致
-    return jsonResponse({ error: "Not Found" }, 404);
+    // APIパスにマッチしなかった場合は、distディレクトリの静的ファイルを配信（SPA対応）
+    const response = await serveDir(req, {
+      fsRoot: "dist",
+      quiet: true,
+    });
+
+    if (response.status === 404) {
+      try {
+        const indexHtml = await Deno.readTextFile("dist/index.html");
+        return new Response(indexHtml, {
+          headers: { "content-type": "text/html; charset=utf-8" },
+        });
+      } catch {
+        return jsonResponse({ error: "Not Found" }, 404);
+      }
+    }
+    return response;
   } catch (err) {
     console.error("Request handler error:", err);
     return jsonResponse({ error: "Internal Server Error" }, 500);

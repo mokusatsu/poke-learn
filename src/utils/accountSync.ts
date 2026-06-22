@@ -3,6 +3,7 @@
 
 const TRANSFER_HASH_KEY = "poke-learn-transfer-hash";
 const USERNAME_KEY = "poke-learn-username";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || "";
 
 // 同期対象のLocalStorageキー一覧（PokeAPIキャッシュ以外）
 const SYNC_KEYS = [
@@ -128,7 +129,7 @@ async function performSync() {
 
   try {
     const progress = getLocalProgress();
-    const res = await fetch("/api/account/sync", {
+    const res = await fetch(`${API_BASE}/api/account/sync`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ transferHash: hash, progress }),
@@ -158,7 +159,7 @@ async function performSync() {
 async function createNewAccountOnServer(currentProgress: ProgressData): Promise<void> {
   updateAccountInfo({ isSyncing: true, syncError: null });
   try {
-    const res = await fetch("/api/account/create", {
+    const res = await fetch(`${API_BASE}/api/account/create`, {
       method: "POST",
     });
 
@@ -175,7 +176,7 @@ async function createNewAccountOnServer(currentProgress: ProgressData): Promise<
     // 既存のローカルデータがあれば、新しいアカウントとして即座に同期
     const hasData = Object.values(currentProgress).some(v => v !== null);
     if (hasData) {
-      const syncRes = await fetch("/api/account/sync", {
+      const syncRes = await fetch(`${API_BASE}/api/account/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ transferHash: data.transferHash, progress: currentProgress }),
@@ -209,7 +210,7 @@ export async function initializeAccount(): Promise<void> {
   // ハッシュがあれば、サーバーからデータを取得
   updateAccountInfo({ isSyncing: true, syncError: null });
   try {
-    const res = await fetch(`/api/account/get?hash=${encodeURIComponent(hash)}`);
+    const res = await fetch(`${API_BASE}/api/account/get?hash=${encodeURIComponent(hash)}`);
     if (res.status === 404) {
       // サーバー上で見つからない（TTLで消えた、または無効なハッシュ）
       console.warn("Account hash not found on server. Re-creating account while keeping local progress.");
@@ -250,7 +251,7 @@ export async function changeUsername(newUsername: string): Promise<void> {
 
   updateAccountInfo({ isSyncing: true });
   try {
-    const res = await fetch("/api/account/update-username", {
+    const res = await fetch(`${API_BASE}/api/account/update-username`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ transferHash: hash, username: newUsername }),
@@ -280,7 +281,7 @@ export async function restoreAccount(hash: string): Promise<void> {
 
   updateAccountInfo({ isSyncing: true });
   try {
-    const res = await fetch("/api/account/restore", {
+    const res = await fetch(`${API_BASE}/api/account/restore`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ transferHash: trimmedHash }),
