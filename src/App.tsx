@@ -5,11 +5,15 @@ import { TeamVisualizer } from "./components/TeamVisualizer";
 import { ConsistencyQuiz } from "./components/ConsistencyQuiz";
 import { WeaknessAnalysis } from "./components/WeaknessAnalysis";
 import { Colophon } from "./components/Colophon";
+import { AccountSettings } from "./components/AccountSettings";
+import { initializeAccount, subscribeAccount } from "./utils/accountSync";
+import type { AccountInfo } from "./utils/accountSync";
 
-type ActiveTab = "type-quiz" | "selection-quiz" | "consistency-quiz" | "visualizer" | "weakness-analysis" | "colophon";
+type ActiveTab = "type-quiz" | "selection-quiz" | "consistency-quiz" | "visualizer" | "weakness-analysis" | "colophon" | "account";
 
 function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("type-quiz");
+  const [account, setAccount] = useState<AccountInfo | null>(null);
   const [apiOnline, setApiOnline] = useState<boolean>(navigator.onLine);
   const [cachedCount, setCachedCount] = useState<number>(0);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
@@ -27,6 +31,12 @@ function App() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     window.addEventListener("resize", handleResize);
+
+    // アカウント機能の初期化
+    initializeAccount();
+    const unsubscribeAccount = subscribeAccount((info) => {
+      setAccount(info);
+    });
 
     // キャッシュされたポケモン数をカウント
     const updateCacheCount = () => {
@@ -46,6 +56,7 @@ function App() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("resize", handleResize);
+      unsubscribeAccount();
     };
   }, []);
 
@@ -103,8 +114,9 @@ function App() {
           )}
         </div>
 
-        {/* API・オンラインインジケータ */}
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", fontSize: "0.75rem" }}>
+        {/* API・オンラインインジケータ ＆ アカウント */}
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? "10px" : "16px", fontSize: "0.75rem" }}>
+          {/* 同期ステータス */}
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "2px" }}>
             <span style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 600 }}>
               データ同期:{" "}
@@ -125,6 +137,43 @@ function App() {
               </span>
             )}
           </div>
+
+          {/* 👤 アカウントボタン */}
+          <button
+            onClick={() => setActiveTab("account")}
+            style={{
+              padding: "5px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "0.8rem",
+              background: activeTab === "account" ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.02)",
+              border: activeTab === "account" ? "1px solid var(--border-glass-active)" : "1px solid var(--border-glass)",
+              borderRadius: "20px",
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+              boxShadow: activeTab === "account" ? "0 0 8px var(--accent-cyan-glow)" : "none",
+              color: activeTab === "account" ? "var(--text-primary)" : "var(--text-secondary)",
+              outline: "none",
+            }}
+            onMouseEnter={(e) => {
+              if (activeTab !== "account") {
+                e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.06)";
+                e.currentTarget.style.color = "var(--text-primary)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (activeTab !== "account") {
+                e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.02)";
+                e.currentTarget.style.color = "var(--text-secondary)";
+              }
+            }}
+          >
+            <span style={{ fontSize: "0.95rem" }}>👤</span>
+            {account && !isMobile && (
+              <span style={{ fontWeight: 600 }}>{account.username}</span>
+            )}
+          </button>
         </div>
       </header>
 
@@ -180,6 +229,7 @@ function App() {
         {activeTab === "visualizer" && <TeamVisualizer />}
         {activeTab === "weakness-analysis" && <WeaknessAnalysis />}
         {activeTab === "colophon" && <Colophon />}
+        {activeTab === "account" && <AccountSettings />}
       </main>
     </div>
   );
