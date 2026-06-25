@@ -284,6 +284,15 @@ test.describe('Poke-Learn ビューポート収まり & スクロール防止検
         // 初期レイアウトチェック
         await checkLayout(page, 'WeaknessAnalysis-Initial');
       });
+
+      test('アカウント設定（👤ボタンクリック遷移）', async ({ page }) => {
+        // ヘッダーの👤ボタンをクリック
+        await page.click('button:has-text("👤")');
+        // 短いウェイト
+        await page.waitForTimeout(400);
+        // レイアウトチェック
+        await checkLayout(page, 'AccountSettings-Initial');
+      });
     });
   }
 });
